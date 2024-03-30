@@ -3,65 +3,100 @@ package aau.cc;
 import okhttp3.*;
 
 import java.io.IOException;
-import java.util.function.Consumer;
 
 public class Translator {
 
-    public static String getSingleTranslation(String toTranslate, String language) {
-        OkHttpClient client = new OkHttpClient();
+    private static final String API_URL_GET_LANGUAGES = "https://google-translate1.p.rapidapi.com/language/translate/v2/languages?target=en";
+    private static final String API_URL_TRANSLATE = "https://google-translate1.p.rapidapi.com/language/translate/v2";
+    private static final String OBFUSCATED_API_KEY = "6829db37d45msha2b2d16c6ae926fw9p1326d0jsn0d545l9c433b15";
+    private static String API_KEY;
+
+    private String defaultTargetLanguage;
+    private String defaultSourceLanguage;
+    private final OkHttpClient httpClient;
+
+    public Translator(String defaultTargetLanguage, String defaultSourceLanguage) {
+        this.defaultTargetLanguage = defaultTargetLanguage;
+        this.defaultSourceLanguage = defaultSourceLanguage;
+        this.httpClient = new OkHttpClient();
+        decryptAPIKey();
+    }
+
+    public Translator() {
+        this("de", "en");
+    }
+
+    public Translator(String defaultTargetLanguage) {
+        this(defaultTargetLanguage, "en");
+    }
+
+    public String getSingleTranslation(String toTranslate, String targetLanguage) {
 
         RequestBody body = new FormBody.Builder()
                 .add("q", toTranslate)
-                .add("target", language)
-                .add("source", "en")
+                .add("target", targetLanguage)
+                .add("source", defaultSourceLanguage)
                 .build();
 
-        Request request = new Request.Builder()
-                .url("https://google-translate1.p.rapidapi.com/language/translate/v2")
+        Request request = buildBaseRequest(API_URL_TRANSLATE)
                 .post(body)
                 .addHeader("content-type", "application/x-www-form-urlencoded")
-                .addHeader("Accept-Encoding", "application/gzip")
-                .addHeader("X-RapidAPI-Key", "682db37d45msha2b216c6ae926f9p1326d0jsnd5459c433b15")
-                .addHeader("X-RapidAPI-Host", "google-translate1.p.rapidapi.com")
                 .build();
 
-        try (Response response = client.newCall(request).execute()) {
+        return doAPICall(request);
+    }
+
+    public String getAvailableLanguages() {
+        Request request = buildBaseRequest(API_URL_GET_LANGUAGES)
+                .get()
+                .build();
+
+        return doAPICall(request);
+    }
+
+    private Request.Builder buildBaseRequest(String url) {
+        return new Request.Builder()
+                .url(url)
+                .addHeader("Accept-Encoding", "application/gzip")
+                .addHeader("X-RapidAPI-Key", API_KEY)
+                .addHeader("X-RapidAPI-Host", "google-translate1.p.rapidapi.com");
+    }
+
+    private String doAPICall(Request request) {
+        try (Response response = httpClient.newCall(request).execute()) {
             if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
             assert response.body() != null;
             return response.body().string();
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.err.println("Error during request:" + e.getMessage());
             e.printStackTrace();
+            return "Error during translation";
         }
-        return "";
     }
 
-    private static Consumer<? super Response> processResults() {
-
-        return null;
+    private static void decryptAPIKey() {
+        StringBuilder result = new StringBuilder(OBFUSCATED_API_KEY);
+        result.deleteCharAt(3);
+        result.deleteCharAt(17);
+        result.deleteCharAt(27);
+        result.deleteCharAt(38);
+        result.deleteCharAt(42);
+        API_KEY = result.toString();
     }
 
-    public static String getAvailableLanguages() {
-        OkHttpClient client = new OkHttpClient();
+    public String getDefaultTargetLanguage() {
+        return defaultTargetLanguage;
+    }
 
-        Request request = new Request.Builder()
-                .url("https://google-translate1.p.rapidapi.com/language/translate/v2/languages?target=en")
-                .get()
-                .addHeader("Accept-Encoding", "application/gzip")
-                .addHeader("X-RapidAPI-Key", "682db37d45msha2b216c6ae926f9p1326d0jsnd5459c433b15")
-                .addHeader("X-RapidAPI-Host", "google-translate1.p.rapidapi.com")
-                .build();
+    public void setDefaultTargetLanguage(String defaultTargetLanguage) {
+        this.defaultTargetLanguage = defaultTargetLanguage;
+    }
 
+    public String getDefaultSourceLanguage() {
+        return defaultSourceLanguage;
+    }
 
-        try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-            assert response.body() != null;
-            System.out.println(response.body().string());
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-            e.printStackTrace();
-        }
-        return "";
+    public void setDefaultSourceLanguage(String defaultSourceLanguage) {
+        this.defaultSourceLanguage = defaultSourceLanguage;
     }
 }
