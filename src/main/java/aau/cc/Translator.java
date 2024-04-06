@@ -1,5 +1,6 @@
 package aau.cc;
 
+import aau.cc.model.Language;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -18,11 +19,11 @@ public class Translator {
     private static final String OBFUSCATED_API_KEY = "6829db37d45msha2b2d16c6ae926fw9p1326d0jsn0d545l9c433b15";
     private static String API_KEY;
 
-    private String defaultTargetLanguage;
-    private String defaultSourceLanguage;
+    private Language defaultTargetLanguage;
+    private Language defaultSourceLanguage;
     private final OkHttpClient httpClient;
 
-    public Translator(String defaultTargetLanguage, String defaultSourceLanguage) {
+    public Translator(Language defaultTargetLanguage, Language defaultSourceLanguage) {
         this.defaultTargetLanguage = defaultTargetLanguage;
         this.defaultSourceLanguage = defaultSourceLanguage;
         this.httpClient = new OkHttpClient();
@@ -30,18 +31,18 @@ public class Translator {
     }
 
     public Translator() {
-        this("de", "en");
+        this(Language.GERMAN, Language.ENGLISH);
     }
 
-    public Translator(String defaultTargetLanguage) {
-        this(defaultTargetLanguage, "en");
+    public Translator(Language defaultTargetLanguage) {
+        this(defaultTargetLanguage, Language.ENGLISH);
     }
 
-    public String getSingleTranslation(String toTranslate, String targetLanguage) {
+    public String getSingleTranslation(String toTranslate, Language targetLanguage) {
 
         RequestBody body = buildRequestBody(toTranslate);
 
-        Request request = buildBaseRequest(API_URL_TRANSLATE + "&to=" + targetLanguage)
+        Request request = buildBaseRequest(API_URL_TRANSLATE + "&to=" + targetLanguage.getCode())
                 .post(body)
                 .addHeader("content-type", "application/json")
                 .build();
@@ -126,19 +127,19 @@ public class Translator {
         API_KEY = result.toString();
     }
 
-    public String getDefaultTargetLanguage() {
+    public Language getDefaultTargetLanguage() {
         return defaultTargetLanguage;
     }
 
-    public void setDefaultTargetLanguage(String defaultTargetLanguage) {
+    public void setDefaultTargetLanguage(Language defaultTargetLanguage) {
         this.defaultTargetLanguage = defaultTargetLanguage;
     }
 
-    public String getDefaultSourceLanguage() {
+    public Language getDefaultSourceLanguage() {
         return defaultSourceLanguage;
     }
 
-    public void setDefaultSourceLanguage(String defaultSourceLanguage) {
+    public void setDefaultSourceLanguage(Language defaultSourceLanguage) {
         this.defaultSourceLanguage = defaultSourceLanguage;
     }
 }

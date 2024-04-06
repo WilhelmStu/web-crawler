@@ -1,5 +1,6 @@
 package aau.cc;
 
+import aau.cc.model.Language;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TranslatorTest {
     private static final String[] WORDS_TO_TRANSLATE = {"Hello World", "book", "tree"};
-    private static final String[] LANGUAGES = {"de", "fr", "it"};
+    private static final Language[] LANGUAGES = {Language.GERMAN, Language.FRENCH, Language.ITALIAN};
     private Translator translator;
     private String[] results;
 
@@ -52,14 +53,14 @@ public class TranslatorTest {
 
     @Test
     public void testSingleTranslationUpdatedTargetLanguage(){
-        translator.setDefaultTargetLanguage("it");
+        translator.setDefaultTargetLanguage(Language.ITALIAN);
         String result = translator.getSingleTranslation("Hello World");
         assertEquals("Salve, mondo", result);
     }
 
     @Test
     public void testSingleTranslationSecondConstructor(){
-        translator = new Translator("it");
+        translator = new Translator(Language.ITALIAN);
         String result = translator.getSingleTranslation("Hello World");
         assertEquals("Salve, mondo", result);
     }
