@@ -39,20 +39,25 @@ public class Translator {
     }
 
     public String getSingleTranslation(String toTranslate, Language targetLanguage) {
-
         RequestBody body = buildRequestBody(toTranslate);
-
-        Request request = buildBaseRequest(API_URL_TRANSLATE + "&to=" + targetLanguage.getCode())
-                .post(body)
-                .addHeader("content-type", "application/json")
-                .build();
-
+        Request request = buildTranslationRequest(body, targetLanguage);
         String result = doAPICall(request);
         return getTranslationsFromResponseBody(result).get(0);
     }
 
     public String getSingleTranslation(String toTranslate) {
         return getSingleTranslation(toTranslate, defaultTargetLanguage);
+    }
+
+    public List<String> getMultipleTranslations(List<String> toTranslate, Language targetLanguage){
+        RequestBody body = buildRequestBody(toTranslate);
+        Request request = buildTranslationRequest(body, targetLanguage);
+        String result = doAPICall(request);
+        return getTranslationsFromResponseBody(result);
+    }
+
+    public List<String> getMultipleTranslations(List<String> toTranslate){
+        return getMultipleTranslations(toTranslate, defaultTargetLanguage);
     }
 
     public String getAvailableLanguages() {
@@ -63,11 +68,40 @@ public class Translator {
         return doAPICall(request);
     }
 
+    private Request buildTranslationRequest(RequestBody body, Language targetLanguage){
+        return buildBaseRequest(API_URL_TRANSLATE + "&to=" + targetLanguage.getCode())
+                .post(body)
+                .addHeader("content-type", "application/json")
+                .build();
+    }
+
     private RequestBody buildRequestBody(String toTranslate) {
+        // Expected json format: [{ "Text": "Line to be translated" }]
         String body = "[{\"Text\": \"" + toTranslate + "\"}]";
         MediaType type = MediaType.parse("application/json");
         return RequestBody.create(body, type);
     }
+
+    private RequestBody buildRequestBody(List<String> toTranslate) {
+        /* Expected json format:
+         * [{ "Text": "Line to be translated" },
+         * { "Text": "Second Line" },
+         * {...}]
+         */
+
+        StringBuilder body = new StringBuilder("[");
+        for (String text: toTranslate) {
+            body.append("{\"Text\": \"")
+                    .append(text)
+                    .append("\"},");
+        }
+        body.setLength(body.length()-1); // remove redundant ',' at the end
+        body.append("]");
+
+        MediaType type = MediaType.parse("application/json");
+        return RequestBody.create(body.toString(), type);
+    }
+
 
     private Request.Builder buildBaseRequest(String url) {
         return new Request.Builder()

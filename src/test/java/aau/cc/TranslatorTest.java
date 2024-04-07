@@ -6,6 +6,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TranslatorTest {
@@ -26,7 +30,7 @@ public class TranslatorTest {
     }
 
     @Test
-    public void testSingleTranslationsWithDefaultParams() {
+    public void testSingleTranslation() {
         for (int i = 0; i < WORDS_TO_TRANSLATE.length; i++) {
             results[i] = translator.getSingleTranslation(WORDS_TO_TRANSLATE[i]);
         }
@@ -36,7 +40,7 @@ public class TranslatorTest {
     }
 
     @Test
-    public void testSingleTranslationsWithTargetLanguage() {
+    public void testSingleTranslationWithTargetLanguage() {
         for (int i = 0; i < WORDS_TO_TRANSLATE.length; i++) {
             results[i] = translator.getSingleTranslation(WORDS_TO_TRANSLATE[i], LANGUAGES[i]);
         }
@@ -63,6 +67,22 @@ public class TranslatorTest {
         translator = new Translator(Language.ITALIAN);
         String result = translator.getSingleTranslation("Hello World");
         assertEquals("Salve, mondo", result);
+    }
+
+    @Test
+    public void testMultipleTranslation(){
+        List<String> result = translator.getMultipleTranslations(Arrays.stream(WORDS_TO_TRANSLATE).toList());
+        assertEquals("Hallo Welt", result.get(0));
+        assertEquals("Buch", result.get(1));
+        assertEquals("Baum", result.get(2));
+    }
+
+    @Test
+    public void testMultipleTranslationWithTargetLanguage(){
+        List<String> result = translator.getMultipleTranslations(Arrays.stream(WORDS_TO_TRANSLATE).toList(), Language.GERMAN);
+        assertEquals("Hallo Welt", result.get(0));
+        assertEquals("Buch", result.get(1));
+        assertEquals("Baum", result.get(2));
     }
 
     @Test
