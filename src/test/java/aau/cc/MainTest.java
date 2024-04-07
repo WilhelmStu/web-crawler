@@ -20,7 +20,6 @@ public class MainTest {
 
     @Test
     void test(){
-        System.out.println("Test works");
         assertTrue(true);
     }
 }
