@@ -49,6 +49,7 @@ public class Translator {
         return getSingleTranslation(toTranslate, defaultTargetLanguage);
     }
 
+    // TODO api only supports 25 lines in the array! split into multiple requests
     public List<String> getMultipleTranslations(List<String> toTranslate, Language targetLanguage){
         RequestBody body = buildRequestBody(toTranslate);
         Request request = buildTranslationRequest(body, targetLanguage);
