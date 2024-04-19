@@ -29,11 +29,11 @@ public class MarkdownExporter {
             writer.write("# Crawled Website: <a>" + website.getUrl() + "</a>\n");
             writer.write("### Depth: " + website.getDepth() + "\n");
             writer.write("### Source language: " + website.getSource().getDisplayName() + "\n");
-            writer.write("### Target language: " + website.getTarget().getDisplayName() + "\n\n");
+            writer.write("### Target language: " + website.getTarget().getDisplayName() + "\n");
             if (skipTranslation) {
                 writer.write("### Translation has been skipped!\n");
             }
-            writer.write("## Overview:\n");
+            writer.write("\n## Overview:\n");
 
             writeHeadings(writer, website);
 
@@ -54,7 +54,7 @@ public class MarkdownExporter {
 
     }
 
-    public void writeHeadings(BufferedWriter writer, CrawledWebsite website) throws IOException {
+    private void writeHeadings(BufferedWriter writer, CrawledWebsite website) throws IOException {
         Translator translator = new Translator(website.getTarget(), website.getSource());
         List<Heading> headings = website.getHeadings();
         List<String> toTranslate = new ArrayList<>();
@@ -76,7 +76,8 @@ public class MarkdownExporter {
         writer.write("\n___\n");
     }
 
-    public void writeSubWebsites(BufferedWriter writer, CrawledWebsite website, int depth) throws IOException {
+    private void writeSubWebsites(BufferedWriter writer, CrawledWebsite website, int depth) throws IOException {
+        if (website.getLinkedWebsites().isEmpty()) return;
         writer.write("\n___\n");
         writer.write("\nChildren of: " + website.getUrl() + "\n");
         for (CrawledWebsite subWebsite : website.getLinkedWebsites()) {
