@@ -69,7 +69,7 @@ public class MarkdownExporterTest {
     @Test
     public void testExportHeaderContent() {
         exporter = new MarkdownExporter(true);
-        exporter.exportToMdFile(fileName, website);
+        exporter.generateContentAndExportToFile(fileName, website);
         List<String> result = readResultFile();
 
         assertEquals("# Crawled Website: <a>https://www.test.com</a>", result.get(0));
@@ -82,7 +82,7 @@ public class MarkdownExporterTest {
     @Test
     public void testExportTranslation() {
         exporter = new MarkdownExporter(false);
-        exporter.exportToMdFile(fileName, website);
+        exporter.generateContentAndExportToFile(fileName, website);
         List<String> result = readResultFile();
         assertNotEquals("### Translation has been skipped!\n", result.get(4));
         List<String> subResults = result.subList(6, 8);
@@ -94,7 +94,7 @@ public class MarkdownExporterTest {
     @Test
     public void testExportNoTranslation() {
         exporter = new MarkdownExporter(true);
-        exporter.exportToMdFile(fileName, website);
+        exporter.generateContentAndExportToFile(fileName, website);
         List<String> result = readResultFile();
         assertEquals("### Translation has been skipped!", result.get(4));
         List<String> subResults = result.subList(7, 9);
@@ -106,26 +106,26 @@ public class MarkdownExporterTest {
     @Test
     public void testExportTranslationChildren() {
         exporter = new MarkdownExporter(false);
-        exporter.exportToMdFile(fileName, website);
+        exporter.generateContentAndExportToFile(fileName, website);
         List<String> result = readResultFile();
         assertNotEquals("### Translation has been skipped!", result.get(4));
-        assertEquals("## Link to: https://www.child.com", result.get(13));
-        List<String> subResults = result.subList(14, 16);
+        assertEquals("### Link to: https://www.child.com", result.get(17));
+        List<String> subResults = result.subList(18, 20);
         for (int i = 0; i < subResults.size(); i++) {
-            assertEquals(subResults.get(i), expectedResultTranslated[i]);
+            assertEquals(subResults.get(i), "##" + expectedResultTranslated[i]);
         }
     }
 
     @Test
     public void testExportNoTranslationChildren() {
         exporter = new MarkdownExporter(true);
-        exporter.exportToMdFile(fileName, website);
+        exporter.generateContentAndExportToFile(fileName, website);
         List<String> result = readResultFile();
         assertEquals("### Translation has been skipped!", result.get(4));
-        assertEquals("## Link to: https://www.child.com", result.get(14));
-        List<String> subResults = result.subList(15, 17);
+        assertEquals("### Link to: https://www.child.com", result.get(18));
+        List<String> subResults = result.subList(19, 21);
         for (int i = 0; i < subResults.size(); i++) {
-            assertEquals(subResults.get(i), expectedResultNotTranslated[i]);
+            assertEquals(subResults.get(i), "##" + expectedResultNotTranslated[i]);
         }
     }
 

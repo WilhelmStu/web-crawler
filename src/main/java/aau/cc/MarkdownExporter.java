@@ -1,7 +1,6 @@
 package aau.cc;
 
 import aau.cc.model.CrawledWebsite;
-import aau.cc.model.Heading;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -13,11 +12,11 @@ public class MarkdownExporter {
 
     private boolean skipTranslation;
 
-    public MarkdownExporter(boolean skipTranslation) {
-        this.skipTranslation = skipTranslation;
+    public MarkdownExporter(boolean skipTranslations) {
+        this.skipTranslation = skipTranslations;
     }
 
-    public void exportToMdFile(String filePath, CrawledWebsite website) {
+    public void generateContentAndExportToFile(String filePath, CrawledWebsite website) {
         if (!filePath.endsWith(".md")) {
             filePath += ".md";
         }
@@ -25,67 +24,78 @@ public class MarkdownExporter {
 
         try {
             writer = new BufferedWriter(new FileWriter(filePath));
-
-            writer.write("# Crawled Website: <a>" + website.getUrl() + "</a>\n");
-            writer.write("### Depth: " + website.getDepth() + "\n");
-            writer.write("### Source language: " + website.getSource().getDisplayName() + "\n");
-            writer.write("### Target language: " + website.getTarget().getDisplayName() + "\n");
-            if (skipTranslation) {
-                writer.write("### Translation has been skipped!\n");
-            }
+            writeToFile(writer, getFormattedHeaderContent(website, skipTranslation));
             writer.write("\n## Overview:\n");
-
-            writeHeadings(writer, website);
-
-            for (CrawledWebsite subWebsite : website.getLinkedWebsites()) {
-                writer.write("\n___\n");
-                writer.write("## Link to: " + subWebsite.getUrl() + "\n");
-                writeHeadings(writer, subWebsite);
-                if (website.getDepth() > 1) {
-                    writeSubWebsites(writer, subWebsite, website.getDepth() - 1);
-                }
-            }
+            writeToFile(writer, getFormattedMainContent(website,0));
+            writer.write("\n___\n");
+            writeToFile(writer, getFormattedSubWebsiteContent(website, website.getDepth()));
             writer.close();
 
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
-
-
     }
 
-    private void writeHeadings(BufferedWriter writer, CrawledWebsite website) throws IOException {
-        Translator translator = new Translator(website.getTarget(), website.getSource());
-        List<Heading> headings = website.getHeadings();
-        List<String> toTranslate = new ArrayList<>();
-        int[] depths = new int[website.getHeadings().size()];
-        for (int i = 0; i < headings.size(); i++) {
-            toTranslate.add(headings.get(i).getText());
-            depths[i] = headings.get(i).getDepth();
+    public List<String> getFormattedHeaderContent(CrawledWebsite website, boolean skipTranslation) {
+        List<String> header = new ArrayList<>();
+        header.add("# Crawled Website: <a>" + website.getUrl() + "</a>");
+        header.add("### Depth: " + website.getDepth());
+        header.add("### Source language: " + website.getSource().getDisplayName());
+        header.add("### Target language: " + website.getTarget().getDisplayName());
+        if (skipTranslation) {
+            header.add("### Translation has been skipped!");
         }
-        List<String> translatedHeadings = skipTranslation ? new ArrayList<>() : translator.getMultipleTranslations(toTranslate);
-        StringBuilder strBuilder = new StringBuilder();
+        return header;
+    }
 
+    public List<String> getFormattedMainContent(CrawledWebsite website, int depthOffset) {
+        List<String> headings = website.getHeadingsTextsAsList();
+        int[] depths = website.getHeadingsDepths();
+        if (skipTranslation){
+            return getFormattedContent(headings, depths, depthOffset);
+        }else{
+            Translator translator = new Translator(website.getTarget(), website.getSource());
+            return getFormattedContent(translator.getMultipleTranslations(headings), depths, depthOffset);
+        }
+    }
+
+    public List<String> getFormattedContent(List<String> headings, int[] depths, int depthOffset) {
+        List<String> formattedContent = new ArrayList<>();
         for (int i = 0; i < depths.length; i++) {
-            strBuilder.append("#".repeat(Math.max(0, depths[i])));
-            strBuilder.append(" ");
-            strBuilder.append(skipTranslation ? toTranslate.get(i) : translatedHeadings.get(i));
-            strBuilder.append("\n");
+            formattedContent.add("#".repeat(Math.max(0, Math.min(depths[i] + depthOffset, 4))) + " " + headings.get(i));
         }
-        writer.write(strBuilder.toString());
-        writer.write("\n___\n");
+        return formattedContent;
     }
 
-    private void writeSubWebsites(BufferedWriter writer, CrawledWebsite website, int depth) throws IOException {
-        if (website.getLinkedWebsites().isEmpty()) return;
-        writer.write("\n___\n");
-        writer.write("\nChildren of: " + website.getUrl() + "\n");
-        for (CrawledWebsite subWebsite : website.getLinkedWebsites()) {
-            writer.write("Link to: " + subWebsite.getUrl() + "\n");
-            writeHeadings(writer, subWebsite);
+    public List<String> getFormattedSubWebsiteContent(CrawledWebsite parentWebsite, int depth) {
+        List<String> formattedContent = new ArrayList<>();
+        formattedContent.add("<br>\n\n___");
+        formattedContent.add("\n### Children of: " + parentWebsite.getUrl());
+        formattedContent.add("___");
+        getSubWebsiteContentRecursively(parentWebsite, formattedContent, depth);
+        return formattedContent;
+    }
+
+    private void getSubWebsiteContentRecursively(CrawledWebsite parentWebsite, List<String> formattedContent, int depth) {
+        if (parentWebsite.getLinkedWebsites().isEmpty()){
+            formattedContent.add("### No links found");
+            return;
+        }
+
+        for (CrawledWebsite subWebsite : parentWebsite.getLinkedWebsites()) {
+            formattedContent.add("### Link to: " + subWebsite.getUrl());
+            formattedContent.addAll(getFormattedMainContent(subWebsite, 2));
+            formattedContent.add("<br>\n");
             if (depth > 1) {
-                writeSubWebsites(writer, subWebsite, website.getDepth() - 1);
+                formattedContent.addAll(getFormattedSubWebsiteContent(subWebsite, parentWebsite.getDepth() - 1));
             }
+        }
+    }
+
+    private void writeToFile(BufferedWriter writer, List<String> lines) throws IOException {
+        for (String line : lines) {
+            writer.write(line);
+            writer.newLine();
         }
     }
 

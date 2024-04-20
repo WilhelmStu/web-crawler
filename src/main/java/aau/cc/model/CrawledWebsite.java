@@ -36,6 +36,22 @@ public class CrawledWebsite {
         this.brokenLinks.add(link);
     }
 
+    public List<String> getHeadingsTextsAsList(){
+        List<String> headingsTexts = new ArrayList<>();
+        for(Heading heading : headings){
+            headingsTexts.add(heading.getText());
+        }
+        return headingsTexts;
+    }
+
+    public int[] getHeadingsDepths(){
+        int[] headingsDepths = new int[headings.size()];
+        for(int i = 0; i < headings.size(); i++){
+            headingsDepths[i] = headings.get(i).getDepth();
+        }
+        return headingsDepths;
+    }
+
     public String getUrl() {
         return url;
     }
