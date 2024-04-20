@@ -12,6 +12,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,9 +71,7 @@ public class MarkdownExporterTest {
     @Test
     public void testExportHeaderContent() {
         exporter = new MarkdownExporter(true);
-        exporter.generateContentAndExportToFile(fileName, website);
-        List<String> result = readResultFile();
-
+        List<String> result = exporter.getFormattedHeaderContent(website, true);
         assertEquals("# Crawled Website: <a>https://www.test.com</a>", result.get(0));
         assertEquals("### Depth: 2", result.get(1));
         assertEquals("### Source language: German", result.get(2));
@@ -80,53 +80,72 @@ public class MarkdownExporterTest {
     }
 
     @Test
-    public void testExportTranslation() {
+    public void testExportHeaderContentTranslation() {
         exporter = new MarkdownExporter(false);
-        exporter.generateContentAndExportToFile(fileName, website);
-        List<String> result = readResultFile();
-        assertNotEquals("### Translation has been skipped!\n", result.get(4));
-        List<String> subResults = result.subList(6, 8);
-        for (int i = 0; i < subResults.size(); i++) {
-            assertEquals(subResults.get(i), expectedResultTranslated[i]);
-        }
+        List<String> result = exporter.getFormattedHeaderContent(website, false);
+        assertFalse(result.contains("### Translation has been skipped!"));
     }
 
     @Test
-    public void testExportNoTranslation() {
+    public void testExportMainContent() {
         exporter = new MarkdownExporter(true);
-        exporter.generateContentAndExportToFile(fileName, website);
-        List<String> result = readResultFile();
-        assertEquals("### Translation has been skipped!", result.get(4));
-        List<String> subResults = result.subList(7, 9);
-        for (int i = 0; i < subResults.size(); i++) {
-            assertEquals(subResults.get(i), expectedResultNotTranslated[i]);
+        List<String> results = exporter.getFormattedMainContent(website, 0);
+        for (int i = 0; i < results.size(); i++) {
+            assertEquals(results.get(i), expectedResultNotTranslated[i]);
+            System.out.println(results.get(i));
         }
     }
 
     @Test
-    public void testExportTranslationChildren() {
+    public void testExportMainContentTranslate() {
         exporter = new MarkdownExporter(false);
-        exporter.generateContentAndExportToFile(fileName, website);
-        List<String> result = readResultFile();
-        assertNotEquals("### Translation has been skipped!", result.get(4));
-        assertEquals("### Link to: https://www.child.com", result.get(17));
-        List<String> subResults = result.subList(18, 20);
+        List<String> results = exporter.getFormattedMainContent(website, 0);
+        for (int i = 0; i < results.size(); i++) {
+            assertEquals(results.get(i), expectedResultTranslated[i]);
+            System.out.println(results.get(i));
+        }
+    }
+
+    @Test
+    public void testExportChildren() {
+        exporter = new MarkdownExporter(true);
+        List<String> results = exporter.getFormattedSubWebsiteContent(website, website.getDepth());
+        assertEquals("<br>\n\n___", results.get(0));
+        assertEquals("\n### Children of: https://www.test.com", results.get(1));
+        assertEquals("### Link to: https://www.child.com", results.get(3));
+        List<String> subResults = results.subList(4, 6);
+        for (int i = 0; i < subResults.size(); i++) {
+            assertEquals(subResults.get(i), "##" + expectedResultNotTranslated[i]);
+        }
+    }
+
+    @Test
+    public void testExportChildrenTranslated() {
+        exporter = new MarkdownExporter(false);
+        List<String> results = exporter.getFormattedSubWebsiteContent(website, website.getDepth());
+        assertEquals("<br>\n\n___", results.get(0));
+        assertEquals("\n### Children of: https://www.test.com", results.get(1));
+        assertEquals("### Link to: https://www.child.com", results.get(3));
+        List<String> subResults = results.subList(4, 6);
         for (int i = 0; i < subResults.size(); i++) {
             assertEquals(subResults.get(i), "##" + expectedResultTranslated[i]);
         }
     }
 
     @Test
-    public void testExportNoTranslationChildren() {
+    public void testExportToFile() {
         exporter = new MarkdownExporter(true);
         exporter.generateContentAndExportToFile(fileName, website);
+        assertTrue(Files.exists(Path.of(fileName)));
         List<String> result = readResultFile();
-        assertEquals("### Translation has been skipped!", result.get(4));
-        assertEquals("### Link to: https://www.child.com", result.get(18));
-        List<String> subResults = result.subList(19, 21);
-        for (int i = 0; i < subResults.size(); i++) {
-            assertEquals(subResults.get(i), "##" + expectedResultNotTranslated[i]);
-        }
+        assertTrue(result.size() > 20);
+    }
+
+    @Test
+    public void testExportToFileNoFileExtension() {
+        exporter = new MarkdownExporter(true);
+        exporter.generateContentAndExportToFile("Test", website);
+        assertTrue(Files.exists(Path.of(fileName)));
     }
 
     @NotNull

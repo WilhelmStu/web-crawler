@@ -59,7 +59,7 @@ public class MarkdownExporter {
         }
     }
 
-    public List<String> getFormattedContent(List<String> headings, int[] depths, int depthOffset) {
+    private List<String> getFormattedContent(List<String> headings, int[] depths, int depthOffset) {
         List<String> formattedContent = new ArrayList<>();
         for (int i = 0; i < depths.length; i++) {
             formattedContent.add("#".repeat(Math.max(0, Math.min(depths[i] + depthOffset, 4))) + " " + headings.get(i));
