@@ -17,6 +17,7 @@ public class Translator {
     private static final String API_URL_TRANSLATE = "https://microsoft-translator-text.p.rapidapi.com/translate?api-version=3.0&textType=plain&profanityAction=NoAction";
     private static final String API_HOST = "microsoft-translator-text.p.rapidapi.com";
     private static final String OBFUSCATED_API_KEY = "6829db37d45msha2b2d16c6ae926fw9p1326d0jsn0d545l9c433b15";
+    private static final int API_MAX_BATCH_SIZE = 25;
     private static String API_KEY;
 
     private Language defaultTargetLanguage;
@@ -49,12 +50,16 @@ public class Translator {
         return getSingleTranslation(toTranslate, defaultTargetLanguage);
     }
 
-    // TODO api only supports 25 lines in the array! split into multiple requests
     public List<String> getMultipleTranslations(List<String> toTranslate, Language targetLanguage){
-        RequestBody body = buildRequestBody(toTranslate);
-        Request request = buildTranslationRequest(body, targetLanguage);
-        String result = doAPICall(request);
-        return getTranslationsFromResponseBody(result);
+        List<String> translations = new ArrayList<>();
+        for (int i = 0; i < toTranslate.size(); i += API_MAX_BATCH_SIZE) {
+            List<String> batch = toTranslate.subList(i, Math.min(i + API_MAX_BATCH_SIZE, toTranslate.size()));
+            RequestBody body = buildRequestBody(batch);
+            Request request = buildTranslationRequest(body, targetLanguage);
+            String result = doAPICall(request);
+            translations.addAll(getTranslationsFromResponseBody(result));
+        }
+        return translations;
     }
 
     public List<String> getMultipleTranslations(List<String> toTranslate){
