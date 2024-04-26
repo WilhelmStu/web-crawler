@@ -20,37 +20,36 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MarkdownExporterTest {
-    static final String fileName = "Test.md";
-    static final String websiteUrl = "https://www.test.com";
-    static final String childWebsiteUrl = "https://www.subtest.com";
-    static final Heading heading1 = new Heading("Test Überschrift Nummer 1", 1);
-    static final Heading heading2 = new Heading("Test Überschrift Nummer 2", 1);
-    static final Heading heading3 = new Heading("Test Überschrift Nummer 3", 2);
-    static final String[] expectedResultTranslated = {
+    private static final String FILE_NAME = "Test.md";
+    private static final String WEBSITE_URL = "https://www.test.com";
+    private static final String CHILD_WEBSITE_URL = "https://www.subtest.com";
+    private static final Heading HEADING_1 = new Heading("Test Überschrift Nummer 1", 1);
+    private static final Heading HEADING_2 = new Heading("Test Überschrift Nummer 2", 1);
+    private static final Heading HEADING_3 = new Heading("Test Überschrift Nummer 3", 2);
+    private static final String[] EXPECTED_RESULT_TRANSLATED = {
             "# Test Heading Number 1",
             "# Test Heading Number 2",
             "## Test Heading Number 3"};
-    static final String[] expectedResultNotTranslated = {
+    private static final String[] EXPECTED_RESULT_NOT_TRANSLATED = {
             "# Test Überschrift Nummer 1",
             "# Test Überschrift Nummer 2",
             "## Test Überschrift Nummer 3"};
 
-    CrawledWebsite website;
-    List<Heading> headings;
-    MarkdownExporter exporter;
+    private CrawledWebsite website;
+    private MarkdownExporter exporter;
 
     @BeforeEach
     public void setUp() {
-        website = new CrawledWebsite(websiteUrl, 2);
-        headings = new ArrayList<>();
-        headings.add(heading1);
-        headings.add(heading2);
-        headings.add(heading3);
+        website = new CrawledWebsite(WEBSITE_URL, 2);
+        List<Heading> headings = new ArrayList<>();
+        headings.add(HEADING_1);
+        headings.add(HEADING_2);
+        headings.add(HEADING_3);
         website.setHeadings(headings);
         website.setSource(Language.GERMAN);
         website.setTarget(Language.ENGLISH);
 
-        CrawledWebsite childSite = new CrawledWebsite(childWebsiteUrl, 1);
+        CrawledWebsite childSite = new CrawledWebsite(CHILD_WEBSITE_URL, 1);
         childSite.setHeadings(headings);
         childSite.setSource(Language.GERMAN);
         childSite.setTarget(Language.ENGLISH);
@@ -61,7 +60,7 @@ public class MarkdownExporterTest {
     public void tearDown() {
         website = null;
         exporter = null;
-        File file = new File(fileName);
+        File file = new File(FILE_NAME);
         if (file.exists()) {
             assertTrue(file.delete());
         }
@@ -113,7 +112,7 @@ public class MarkdownExporterTest {
     @Test
     public void testExportToFile() {
         exporter = new MarkdownExporter(true);
-        exporter.generateContentAndExportToFile(fileName, website);
+        exporter.generateContentAndExportToFile(FILE_NAME, website);
         assertExportedFile();
     }
 
@@ -139,9 +138,9 @@ public class MarkdownExporterTest {
     private void assertExportedContent(List<String> results, boolean translationSkipped) {
         for (int i = 0; i < results.size(); i++) {
             if (translationSkipped) {
-                assertEquals(results.get(i), expectedResultNotTranslated[i]);
+                assertEquals(results.get(i), EXPECTED_RESULT_NOT_TRANSLATED[i]);
             } else {
-                assertEquals(results.get(i), expectedResultTranslated[i]);
+                assertEquals(results.get(i), EXPECTED_RESULT_TRANSLATED[i]);
             }
         }
     }
@@ -153,15 +152,15 @@ public class MarkdownExporterTest {
         List<String> subResults = results.subList(4, 6);
         for (int i = 0; i < subResults.size(); i++) {
             if (translationSkipped) {
-                assertEquals(subResults.get(i), "##" + expectedResultNotTranslated[i]);
+                assertEquals(subResults.get(i), "##" + EXPECTED_RESULT_NOT_TRANSLATED[i]);
             } else {
-                assertEquals(subResults.get(i), "##" + expectedResultTranslated[i]);
+                assertEquals(subResults.get(i), "##" + EXPECTED_RESULT_TRANSLATED[i]);
             }
         }
     }
 
     private void assertExportedFile() {
-        assertTrue(Files.exists(Path.of(fileName)));
+        assertTrue(Files.exists(Path.of(FILE_NAME)));
         List<String> result = readResultFile();
         assertTrue(result.size() > 20);
     }
@@ -170,7 +169,7 @@ public class MarkdownExporterTest {
     private List<String> readResultFile() {
         List<String> result = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 result.add(line);
