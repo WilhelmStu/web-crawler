@@ -17,9 +17,9 @@ public class Main {
         getUserInput();
         CrawledWebsite website = new CrawledWebsite(url, depth);
         website.setSource(Language.GERMAN);
-        website.setTarget(targetLanguage);
+        website.setTarget(targetLanguage==null?Language.ENGLISH:targetLanguage);
         WebCrawler.crawlWebsite(website ,domains);
-        MarkdownExporter exporter = new MarkdownExporter(true);
+        MarkdownExporter exporter = new MarkdownExporter(targetLanguage == null);
         exporter.generateMarkdownFile("test123.md", website);
     }
 
@@ -33,8 +33,12 @@ public class Main {
         sc.nextLine();
 
         do {
-            System.out.print("Enter the target language code (e.g., en, de, fr, it, es): ");
+            System.out.print("Enter the target language code (e.g., en, de, fr, it, es, or none): ");
             String inputLanguage = sc.nextLine().trim().toLowerCase();
+            if(inputLanguage.equals("none")){
+                targetLanguage = null;
+                break;
+            }
             targetLanguage = findLanguage(inputLanguage);
         } while (targetLanguage == null);
 

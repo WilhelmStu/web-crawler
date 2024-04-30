@@ -10,60 +10,34 @@ import org.jsoup.select.Elements;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class WebCrawler {
     private static final Set<String> alreadyVisited = new HashSet<>();
+    private static final int FETCH_TIMEOUT = 3000;
 
     public static CrawledWebsite crawlWebsite(CrawledWebsite website, String[] domains) {
         alreadyVisited.add(website.getUrl());
         String url = website.getUrl();
         int depth = website.getDepth();
 
-
         try {
-            Document doc = Jsoup.parse(new URL(url), 3000);
-            Elements headings = doc.select("h1, h2, h3, h4, h5, h6");
+            Document document = Jsoup.parse(new URL(url), FETCH_TIMEOUT);
+            website.setHeadings(getHeadingsOfWebsite(document));
 
-            // get headings
-            Set<Heading> headingsSet = new HashSet<>();
-            for (Element heading : headings) {
-                int headingDepth = Integer.parseInt(heading.tagName().substring(1));
-                headingsSet.add(new Heading(heading.text(), headingDepth));
-            }
-            website.setHeadings(new ArrayList<>(headingsSet));
+            List<String> links = getLinksOfWebsite(document);
+            List<String> linksToCrawl = getLinksToCrawl(domains, links);
 
-            // get links
-            Elements links = doc.select("a[href]");
-
-            Set<String> linkSet = new HashSet<>();
-            Set<String> linksToCrawl = new HashSet<>();
-            for (Element link : links) {
-                String linkUrl = link.absUrl("href");
-                linkSet.add(linkUrl);
-                if (domains != null) {
-                    for (String domain : domains) {
-                        if (linkUrl.contains(domain)) {
-                            // Add the URL to the set of valid URLs
-                            linksToCrawl.add(linkUrl);
-                            break;
-                        }
-                    }
-                } else {
-                    linksToCrawl.add(linkUrl);
+            for (String link : links) {
+                CrawledWebsite linkedWebsite = new CrawledWebsite(link, depth - 1);
+                if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && depth > 1) {
+                    linkedWebsite = crawlWebsite(linkedWebsite, domains);
                 }
-            }
-            if (!linkSet.isEmpty()) { //  && depth > 1
-                for (String link : linkSet) {
-                    CrawledWebsite linkedWebsite = new CrawledWebsite(link, depth - 1);
-                    if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && depth > 1) {
-                        linkedWebsite = crawlWebsite(linkedWebsite, domains);
-                    }
-                    if (linkedWebsite != null) {
-                        website.addLinkedWebsite(linkedWebsite);
-                    } else {
-                        website.addBrokenLink(link);
-                    }
+                if (linkedWebsite != null) {
+                    website.addLinkedWebsite(linkedWebsite);
+                } else {
+                    website.addBrokenLink(link);
                 }
             }
 
@@ -74,4 +48,42 @@ public class WebCrawler {
 
         return website;
     }
+
+    public static List<Heading> getHeadingsOfWebsite(Document document) {
+        Elements headings = document.select("h1, h2, h3, h4, h5, h6");
+        Set<Heading> headingsSet = new HashSet<>(); // use set to prevent duplicates
+        for (Element heading : headings) {
+            int headingDepth = Integer.parseInt(heading.tagName().substring(1));
+            headingsSet.add(new Heading(heading.text(), headingDepth));
+        }
+        return new ArrayList<>(headingsSet);
+    }
+
+    public static List<String> getLinksOfWebsite(Document document) {
+        Elements links = document.select("a[href]");
+        Set<String> linkSet = new HashSet<>(); // use set to prevent duplicates
+        for (Element link : links) {
+            String linkUrl = link.absUrl("href");
+            linkSet.add(linkUrl);
+        }
+        return new ArrayList<>(linkSet);
+    }
+
+    public static List<String> getLinksToCrawl(String[] domains, List<String> links) {
+        Set<String> linksToCrawl = new HashSet<>();
+        if (domains != null) {
+            for (String link : links) {
+                for (String domain : domains) {
+                    if (link.contains(domain)) {
+                        linksToCrawl.add(link);
+                        break;
+                    }
+                }
+            }
+        } else {
+            linksToCrawl.addAll(links);
+        }
+        return new ArrayList<>(linksToCrawl);
+    }
+
 }

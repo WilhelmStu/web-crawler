@@ -86,7 +86,6 @@ public class MarkdownExporter {
         List<String> formattedContent = new ArrayList<>();
         formattedContent.add("<br>\n\n___");
         formattedContent.add("\n### Children of: " + parentWebsite.getUrl());
-        formattedContent.add("___");
         getSubWebsiteContentRecursively(parentWebsite, formattedContent, depth);
         return formattedContent;
     }
@@ -102,10 +101,13 @@ public class MarkdownExporter {
         }
 
         for (CrawledWebsite subWebsite : parentWebsite.getLinkedWebsites()) {
+            formattedContent.add("___");
             formattedContent.add("### Link to: " + subWebsite.getUrl());
             formattedContent.addAll(getFormattedMainContent(subWebsite, 2));
             formattedContent.add("\n");
             formattedContent.addAll(getFormattedBrokenLinks(parentWebsite.getBrokenLinks()));
+        }
+        for (CrawledWebsite subWebsite : parentWebsite.getLinkedWebsites()) {
             if (depth > 1) {
                 formattedContent.addAll(getFormattedSubWebsiteContent(subWebsite, parentWebsite.getDepth() - 1));
             }
