@@ -5,7 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -13,39 +13,38 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TranslatorTest {
     private static final String[] WORDS_TO_TRANSLATE = {"Hello World", "book", "tree"};
+    private static final String[] EXPECTED_RESULTS1 = {"Hallo Welt", "Buch", "Baum"};
+    private static final String[] EXPECTED_RESULTS2 = {"Hallo Welt", "livre", "albero"};
     private static final Language[] LANGUAGES = {Language.GERMAN, Language.FRENCH, Language.ITALIAN};
     private Translator translator;
-    private String[] results;
+    private List<String> results;
 
     @BeforeEach
     public void setUp() {
         translator = new Translator();
-        results = new String[WORDS_TO_TRANSLATE.length];
+        results = new ArrayList<>();
     }
 
     @AfterEach
     public void tearDown() {
-
+        translator = null;
+        results = null;
     }
 
     @Test
     public void testSingleTranslation() {
-        for (int i = 0; i < WORDS_TO_TRANSLATE.length; i++) {
-            results[i] = translator.getSingleTranslation(WORDS_TO_TRANSLATE[i]);
+        for (String s : WORDS_TO_TRANSLATE) {
+            results.add(translator.getSingleTranslation(s));
         }
-        assertEquals("Hallo Welt", results[0]);
-        assertEquals("Buch", results[1]);
-        assertEquals("Baum", results[2]);
+        assertResults1(results);
     }
 
     @Test
     public void testSingleTranslationWithTargetLanguage() {
         for (int i = 0; i < WORDS_TO_TRANSLATE.length; i++) {
-            results[i] = translator.getSingleTranslation(WORDS_TO_TRANSLATE[i], LANGUAGES[i]);
+            results.add(translator.getSingleTranslation(WORDS_TO_TRANSLATE[i], LANGUAGES[i]));
         }
-        assertEquals("Hallo Welt", results[0]);
-        assertEquals("livre", results[1]);
-        assertEquals("albero", results[2]);
+        assertResults2(results);
     }
 
     @Test
@@ -69,25 +68,33 @@ public class TranslatorTest {
     }
 
     @Test
-    public void testMultipleTranslation(){
-        List<String> result = translator.getMultipleTranslations(Arrays.stream(WORDS_TO_TRANSLATE).toList());
-        assertEquals("Hallo Welt", result.get(0));
-        assertEquals("Buch", result.get(1));
-        assertEquals("Baum", result.get(2));
+    public void testMultipleTranslations(){
+        results = translator.getMultipleTranslations(Arrays.stream(WORDS_TO_TRANSLATE).toList());
+        assertResults1(results);
     }
 
     @Test
-    public void testMultipleTranslationWithTargetLanguage(){
+    public void testMultipleTranslationsWithTargetLanguage(){
         List<String> result = translator.getMultipleTranslations(Arrays.stream(WORDS_TO_TRANSLATE).toList(), Language.GERMAN);
-        assertEquals("Hallo Welt", result.get(0));
-        assertEquals("Buch", result.get(1));
-        assertEquals("Baum", result.get(2));
+        assertResults1(result);
     }
 
     @Test
     public void testGetAvailableLanguages(){
         String result = translator.getAvailableLanguages();
         assertTrue(result.contains("\"de\":{\"name\":\"German\",\"nativeName\":\"Deutsch\",\"dir\":\"ltr\"}"));
+    }
+
+    private void assertResults1(List<String> results){
+        for (int i = 0; i < EXPECTED_RESULTS1.length; i++) {
+            assertEquals(EXPECTED_RESULTS1[i], results.get(i));
+        }
+    }
+
+    private void assertResults2(List<String> results){
+        for (int i = 0; i < EXPECTED_RESULTS2.length; i++) {
+            assertEquals(EXPECTED_RESULTS2[i], results.get(i));
+        }
     }
 
 }

@@ -20,49 +20,67 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MarkdownExporterTest {
-    static final String fileName = "Test.md";
-    static final String websiteUrl = "https://www.test.com";
-    static final String childWebsiteUrl = "https://www.child.com";
-    static final Heading heading1 = new Heading("Test Überschrift Nummer 1", 1);
-    static final Heading heading2 = new Heading("Test Überschrift Nummer 2", 1);
-    static final Heading heading3 = new Heading("Test Überschrift Nummer 3", 2);
-    static final String[] expectedResultTranslated = {
+    private static final String FILE_NAME = "Test.md";
+    private static final String WEBSITE_URL = "https://www.test.com";
+    private static final String CHILD_WEBSITE_URL = "https://www.subtest.com";
+    private static final String BROKEN_LINK = "https://www.broken.com";
+    private static final Heading HEADING_1 = new Heading("Test Überschrift Nummer 1", 1);
+    private static final Heading HEADING_2 = new Heading("Test Überschrift Nummer 2", 1);
+    private static final Heading HEADING_3 = new Heading("Test Überschrift Nummer 3", 2);
+    private static final String EXPECTED_FORMATED_BROKEN_LINK = "### <span style=\"color:gray\"> Broken Link to: </span>";
+    private static final String[] EXPECTED_RESULT_TRANSLATED = {
             "# Test Heading Number 1",
             "# Test Heading Number 2",
             "## Test Heading Number 3"};
-    static final String[] expectedResultNotTranslated = {
+    private static final String[] EXPECTED_RESULT_NOT_TRANSLATED = {
             "# Test Überschrift Nummer 1",
             "# Test Überschrift Nummer 2",
             "## Test Überschrift Nummer 3"};
 
-    CrawledWebsite website;
-    List<Heading> headings;
-    MarkdownExporter exporter;
-
+    private CrawledWebsite website;
+    private MarkdownExporter exporter;
+    private List<String> brokenLinks;
 
     @BeforeEach
     public void setUp() {
-        website = new CrawledWebsite(websiteUrl, 2);
-        headings = new ArrayList<>();
-        headings.add(heading1);
-        headings.add(heading2);
-        headings.add(heading3);
+        setUpBrokenLinks();
+        website = getWebsite(WEBSITE_URL, 2);
+        website.addBrokenLink(BROKEN_LINK);
+        CrawledWebsite childWebSite = getWebsite(CHILD_WEBSITE_URL, 1);
+        childWebSite.setBrokenLinks(brokenLinks);
+        website.addLinkedWebsite(childWebSite);
+    }
+
+    private void setUpBrokenLinks() {
+        brokenLinks = new ArrayList<>();
+        brokenLinks.add(BROKEN_LINK);
+        brokenLinks.add("https://www.moreBroken.com");
+        brokenLinks.add("https://www.veryBroken.net");
+    }
+
+    private CrawledWebsite getWebsite(String URL, int depth){
+        CrawledWebsite website = new CrawledWebsite(URL, depth);
+        List<Heading> headings = getHeadingList();
         website.setHeadings(headings);
         website.setSource(Language.GERMAN);
         website.setTarget(Language.ENGLISH);
+        return website;
+    }
 
-        CrawledWebsite childSite = new CrawledWebsite(childWebsiteUrl, 1);
-        childSite.setHeadings(headings);
-        childSite.setSource(Language.GERMAN);
-        childSite.setTarget(Language.ENGLISH);
-        website.addLinkedWebsite(childSite);
+    private List<Heading> getHeadingList() {
+        List<Heading> headings = new ArrayList<>();
+        headings.add(HEADING_1);
+        headings.add(HEADING_2);
+        headings.add(HEADING_3);
+        return headings;
     }
 
     @AfterEach
     public void tearDown() {
         website = null;
         exporter = null;
-        File file = new File(fileName);
+        brokenLinks = null;
+        File file = new File(FILE_NAME);
         if (file.exists()) {
             assertTrue(file.delete());
         }
@@ -72,87 +90,127 @@ public class MarkdownExporterTest {
     public void testExportHeaderContent() {
         exporter = new MarkdownExporter(true);
         List<String> result = exporter.getFormattedHeaderContent(website, true);
-        assertEquals("# Crawled Website: <a>https://www.test.com</a>", result.get(0));
-        assertEquals("### Depth: 2", result.get(1));
-        assertEquals("### Source language: German", result.get(2));
-        assertEquals("### Target language: English", result.get(3));
-        assertEquals("### Translation has been skipped!", result.get(4));
+        assertResultHeader(result, true);
     }
 
     @Test
-    public void testExportHeaderContentTranslation() {
+    public void testExportHeaderContentTranslated() {
         exporter = new MarkdownExporter(false);
         List<String> result = exporter.getFormattedHeaderContent(website, false);
-        assertFalse(result.contains("### Translation has been skipped!"));
+        assertResultHeader(result, false);
     }
 
     @Test
     public void testExportMainContent() {
         exporter = new MarkdownExporter(true);
         List<String> results = exporter.getFormattedMainContent(website, 0);
-        for (int i = 0; i < results.size(); i++) {
-            assertEquals(results.get(i), expectedResultNotTranslated[i]);
-            System.out.println(results.get(i));
-        }
+        assertExportedContent(results, true);
     }
 
     @Test
-    public void testExportMainContentTranslate() {
+    public void testExportMainContentTranslated() {
         exporter = new MarkdownExporter(false);
         List<String> results = exporter.getFormattedMainContent(website, 0);
-        for (int i = 0; i < results.size(); i++) {
-            assertEquals(results.get(i), expectedResultTranslated[i]);
-            System.out.println(results.get(i));
-        }
+        assertExportedContent(results, false);
     }
 
+
     @Test
-    public void testExportChildren() {
+    public void testExportChildrenContent() {
         exporter = new MarkdownExporter(true);
         List<String> results = exporter.getFormattedSubWebsiteContent(website, website.getDepth());
-        assertEquals("<br>\n\n___", results.get(0));
-        assertEquals("\n### Children of: https://www.test.com", results.get(1));
-        assertEquals("### Link to: https://www.child.com", results.get(3));
-        List<String> subResults = results.subList(4, 6);
-        for (int i = 0; i < subResults.size(); i++) {
-            assertEquals(subResults.get(i), "##" + expectedResultNotTranslated[i]);
-        }
+        assertExportedChildrenContent(results, true);
     }
 
     @Test
-    public void testExportChildrenTranslated() {
+    public void testExportChildrenContentTranslated() {
         exporter = new MarkdownExporter(false);
         List<String> results = exporter.getFormattedSubWebsiteContent(website, website.getDepth());
-        assertEquals("<br>\n\n___", results.get(0));
-        assertEquals("\n### Children of: https://www.test.com", results.get(1));
-        assertEquals("### Link to: https://www.child.com", results.get(3));
-        List<String> subResults = results.subList(4, 6);
-        for (int i = 0; i < subResults.size(); i++) {
-            assertEquals(subResults.get(i), "##" + expectedResultTranslated[i]);
-        }
+        assertExportedChildrenContent(results, false);
+    }
+
+    @Test
+    public void testExportBrokenLinkFromWebsite() {
+        exporter = new MarkdownExporter(false);
+        List<String> results = exporter.getFormattedBrokenLinks(website.getBrokenLinks());
+        assertFormattedBrokenLinks(results);
+    }
+
+    @Test
+    public void testExportBrokenLinks() {
+        exporter = new MarkdownExporter(false);
+        List<String> results = exporter.getFormattedBrokenLinks(brokenLinks);
+        assertFormattedBrokenLinks(results);
     }
 
     @Test
     public void testExportToFile() {
         exporter = new MarkdownExporter(true);
-        exporter.generateContentAndExportToFile(fileName, website);
-        assertTrue(Files.exists(Path.of(fileName)));
-        List<String> result = readResultFile();
-        assertTrue(result.size() > 20);
+        exporter.generateMarkdownFile(FILE_NAME, website);
+        assertExportedFile();
     }
 
     @Test
     public void testExportToFileNoFileExtension() {
         exporter = new MarkdownExporter(true);
-        exporter.generateContentAndExportToFile("Test", website);
-        assertTrue(Files.exists(Path.of(fileName)));
+        exporter.generateMarkdownFile("Test", website);
+        assertExportedFile();
+    }
+
+    private void assertResultHeader(List<String> result, boolean translationSkipped) {
+        assertEquals("# Crawled Website: <a>https://www.test.com</a>", result.get(0));
+        assertEquals("### Depth: 2", result.get(1));
+        assertEquals("### Source language: German", result.get(2));
+        assertEquals("### Target language: English", result.get(3));
+        if (translationSkipped) {
+            assertEquals("### Translation has been skipped!", result.get(4));
+        } else {
+            assertFalse(result.contains("### Translation has been skipped!"));
+        }
+    }
+
+    private void assertExportedContent(List<String> results, boolean translationSkipped) {
+        for (int i = 0; i < results.size(); i++) {
+            if (translationSkipped) {
+                assertEquals(results.get(i), EXPECTED_RESULT_NOT_TRANSLATED[i]);
+            } else {
+                assertEquals(results.get(i), EXPECTED_RESULT_TRANSLATED[i]);
+            }
+        }
+    }
+
+    private void assertExportedChildrenContent(List<String> results, boolean translationSkipped) {
+        assertEquals("<br>\n\n___", results.get(0));
+        assertEquals("\n### Children of: https://www.test.com", results.get(1));
+        assertEquals("### Link to: https://www.subtest.com", results.get(3));
+        List<String> subResults = results.subList(4, 6);
+        for (int i = 0; i < subResults.size(); i++) {
+            if (translationSkipped) {
+                assertEquals(subResults.get(i), "##" + EXPECTED_RESULT_NOT_TRANSLATED[i]);
+            } else {
+                assertEquals(subResults.get(i), "##" + EXPECTED_RESULT_TRANSLATED[i]);
+            }
+        }
+    }
+
+    private void assertFormattedBrokenLinks(List<String> results) {
+        for (int i = 0; i < results.size(); i++) {
+            String expected  = EXPECTED_FORMATED_BROKEN_LINK + brokenLinks.get(i);
+            assertEquals(expected, results.get(i));
+        }
+    }
+
+    private void assertExportedFile() {
+        assertTrue(Files.exists(Path.of(FILE_NAME)));
+        List<String> result = readResultFile();
+        assertTrue(result.size() > 20);
     }
 
     @NotNull
     private List<String> readResultFile() {
         List<String> result = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 result.add(line);
@@ -160,7 +218,7 @@ public class MarkdownExporterTest {
         } catch (IOException e) {
             fail();
         }
-        assertFalse(result.isEmpty());
+
         return result;
     }
 }

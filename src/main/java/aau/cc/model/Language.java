@@ -2,9 +2,7 @@ package aau.cc.model;
 
 public enum Language {
     ENGLISH("English", "en"),
-
     GERMAN("German", "de"),
-
     FRENCH("French", "fr"),
     ITALIAN("Italian", "it"),
     SPANISH("Spanish", "es");

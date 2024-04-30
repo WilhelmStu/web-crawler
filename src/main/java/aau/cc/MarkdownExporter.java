@@ -16,24 +16,30 @@ public class MarkdownExporter {
         this.skipTranslation = skipTranslations;
     }
 
-    public void generateContentAndExportToFile(String filePath, CrawledWebsite website) {
+    public void generateMarkdownFile(String filePath, CrawledWebsite website) {
         if (!filePath.endsWith(".md")) {
             filePath += ".md";
         }
-        BufferedWriter writer;
 
         try {
-            writer = new BufferedWriter(new FileWriter(filePath));
-            writeToFile(writer, getFormattedHeaderContent(website, skipTranslation));
-            writer.write("\n## Overview:\n");
-            writeToFile(writer, getFormattedMainContent(website,0));
-            writer.write("\n___\n");
-            writeToFile(writer, getFormattedSubWebsiteContent(website, website.getDepth()));
-            writer.close();
-
+            generateContentAndExportToFile(filePath, website);
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
+    }
+
+    private void generateContentAndExportToFile(String filePath, CrawledWebsite website) throws IOException {
+        BufferedWriter writer;
+        writer = new BufferedWriter(new FileWriter(filePath));
+
+        writeToFile(writer, getFormattedHeaderContent(website, skipTranslation));
+
+        writer.write("\n## Overview:\n");
+        writeToFile(writer, getFormattedMainContent(website, 0));
+        writer.write("\n___\n");
+
+        writeToFile(writer, getFormattedSubWebsiteContent(website, website.getDepth()));
+        writer.close();
     }
 
     public List<String> getFormattedHeaderContent(CrawledWebsite website, boolean skipTranslation) {
@@ -51,18 +57,27 @@ public class MarkdownExporter {
     public List<String> getFormattedMainContent(CrawledWebsite website, int depthOffset) {
         List<String> headings = website.getHeadingsTextsAsList();
         int[] depths = website.getHeadingsDepths();
-        if (skipTranslation){
+        if (skipTranslation) {
             return getFormattedContent(headings, depths, depthOffset);
-        }else{
+        } else {
             Translator translator = new Translator(website.getTarget(), website.getSource());
             return getFormattedContent(translator.getMultipleTranslations(headings), depths, depthOffset);
         }
     }
 
+    public List<String> getFormattedBrokenLinks(List<String> brokenLinks) {
+        List<String> formattedBrokenLinks = new ArrayList<>();
+        for (String link : brokenLinks) {
+            formattedBrokenLinks.add("### <span style=\"color:gray\"> Broken Link to: </span>" + link);
+        }
+        return formattedBrokenLinks;
+    }
+
     private List<String> getFormattedContent(List<String> headings, int[] depths, int depthOffset) {
         List<String> formattedContent = new ArrayList<>();
         for (int i = 0; i < depths.length; i++) {
-            formattedContent.add("#".repeat(Math.max(0, Math.min(depths[i] + depthOffset, 4))) + " " + headings.get(i));
+            int repeatFor = Math.max(0, Math.min(depths[i] + depthOffset, 4));
+            formattedContent.add("#".repeat(repeatFor) + " " + headings.get(i));
         }
         return formattedContent;
     }
@@ -78,7 +93,11 @@ public class MarkdownExporter {
 
     private void getSubWebsiteContentRecursively(CrawledWebsite parentWebsite, List<String> formattedContent, int depth) {
         if (parentWebsite.getLinkedWebsites().isEmpty()){
-            formattedContent.add("### No links found");
+            if(parentWebsite.getBrokenLinks().isEmpty()){
+                formattedContent.add("### No links found");
+            }else{
+                formattedContent.addAll(getFormattedBrokenLinks(parentWebsite.getBrokenLinks()));
+            }
             return;
         }
 
@@ -86,6 +105,7 @@ public class MarkdownExporter {
             formattedContent.add("### Link to: " + subWebsite.getUrl());
             formattedContent.addAll(getFormattedMainContent(subWebsite, 2));
             formattedContent.add("<br>\n");
+            formattedContent.addAll(getFormattedBrokenLinks(parentWebsite.getBrokenLinks()));
             if (depth > 1) {
                 formattedContent.addAll(getFormattedSubWebsiteContent(subWebsite, parentWebsite.getDepth() - 1));
             }
