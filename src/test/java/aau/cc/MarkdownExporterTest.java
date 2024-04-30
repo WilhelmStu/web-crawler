@@ -43,24 +43,12 @@ public class MarkdownExporterTest {
 
     @BeforeEach
     public void setUp() {
-        website = new CrawledWebsite(WEBSITE_URL, 2);
         setUpBrokenLinks();
-        List<Heading> headings = new ArrayList<>();
-        headings.add(HEADING_1);
-        headings.add(HEADING_2);
-        headings.add(HEADING_3);
-        website.setHeadings(headings);
-        website.setSource(Language.GERMAN);
-        website.setTarget(Language.ENGLISH);
+        website = getWebsite(WEBSITE_URL, 2);
         website.addBrokenLink(BROKEN_LINK);
-
-        CrawledWebsite childSite = new CrawledWebsite(CHILD_WEBSITE_URL, 1);
-        childSite.setHeadings(headings);
-        childSite.setSource(Language.GERMAN);
-        childSite.setTarget(Language.ENGLISH);
-        childSite.setBrokenLinks(brokenLinks);
-        website.addLinkedWebsite(childSite);
-
+        CrawledWebsite childWebSite = getWebsite(CHILD_WEBSITE_URL, 1);
+        childWebSite.setBrokenLinks(brokenLinks);
+        website.addLinkedWebsite(childWebSite);
     }
 
     private void setUpBrokenLinks() {
@@ -68,6 +56,23 @@ public class MarkdownExporterTest {
         brokenLinks.add(BROKEN_LINK);
         brokenLinks.add("https://www.moreBroken.com");
         brokenLinks.add("https://www.veryBroken.net");
+    }
+
+    private CrawledWebsite getWebsite(String URL, int depth){
+        CrawledWebsite website = new CrawledWebsite(URL, depth);
+        List<Heading> headings = getHeadingList();
+        website.setHeadings(headings);
+        website.setSource(Language.GERMAN);
+        website.setTarget(Language.ENGLISH);
+        return website;
+    }
+
+    private List<Heading> getHeadingList() {
+        List<Heading> headings = new ArrayList<>();
+        headings.add(HEADING_1);
+        headings.add(HEADING_2);
+        headings.add(HEADING_3);
+        return headings;
     }
 
     @AfterEach
