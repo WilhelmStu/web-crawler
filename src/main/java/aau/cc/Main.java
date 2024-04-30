@@ -13,17 +13,21 @@ public class Main {
     private static Language targetLanguage;
 
 
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
         getUserInput();
         CrawledWebsite website = new CrawledWebsite(url, depth);
         website.setSource(Language.GERMAN);
-        website.setTarget(targetLanguage==null?Language.ENGLISH:targetLanguage);
-        WebCrawler.crawlWebsite(website ,domains);
+        if(targetLanguage != null) {
+            website.setTarget(targetLanguage);
+        }
+
+        WebCrawler.crawlWebsite(website, domains);
+
         MarkdownExporter exporter = new MarkdownExporter(targetLanguage == null);
-        exporter.generateMarkdownFile("test123.md", website);
+        exporter.generateMarkdownFile("out.md", website);
     }
 
-    private static void getUserInput(){
+    public static void getUserInput() {
         Scanner sc = new Scanner(System.in);
         System.out.print("Enter URL to be crawled: ");
         url = sc.nextLine();
@@ -35,7 +39,7 @@ public class Main {
         do {
             System.out.print("Enter the target language code (e.g., en, de, fr, it, es, or none): ");
             String inputLanguage = sc.nextLine().trim().toLowerCase();
-            if(inputLanguage.equals("none")){
+            if (inputLanguage.equals("none")) {
                 targetLanguage = null;
                 break;
             }
@@ -51,7 +55,7 @@ public class Main {
         sc.close();
     }
 
-    private static Language findLanguage(String languageCode) {
+    public static Language findLanguage(String languageCode) {
         for (Language language : Language.values()) {
             if (language.getCode().equals(languageCode)) {
                 return language;
