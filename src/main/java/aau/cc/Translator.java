@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Translator {
 
@@ -50,7 +51,7 @@ public class Translator {
         return getSingleTranslation(toTranslate, defaultTargetLanguage);
     }
 
-    public List<String> getMultipleTranslations(List<String> toTranslate, Language targetLanguage){
+    public List<String> getMultipleTranslations(List<String> toTranslate, Language targetLanguage) {
         List<String> translations = new ArrayList<>();
         for (int i = 0; i < toTranslate.size(); i += API_MAX_BATCH_SIZE) {
             List<String> batch = toTranslate.subList(i, Math.min(i + API_MAX_BATCH_SIZE, toTranslate.size()));
@@ -62,7 +63,7 @@ public class Translator {
         return translations;
     }
 
-    public List<String> getMultipleTranslations(List<String> toTranslate){
+    public List<String> getMultipleTranslations(List<String> toTranslate) {
         return getMultipleTranslations(toTranslate, defaultTargetLanguage);
     }
 
@@ -74,7 +75,7 @@ public class Translator {
         return doAPICall(request);
     }
 
-    private Request buildTranslationRequest(RequestBody body, Language targetLanguage){
+    private Request buildTranslationRequest(RequestBody body, Language targetLanguage) {
         return buildBaseRequest(API_URL_TRANSLATE + "&to=" + targetLanguage.getCode())
                 .post(body)
                 .addHeader("content-type", "application/json")
@@ -96,12 +97,12 @@ public class Translator {
          */
 
         StringBuilder body = new StringBuilder("[");
-        for (String text: toTranslate) {
+        for (String text : toTranslate) {
             body.append("{\"Text\": \"")
                     .append(text)
                     .append("\"},");
         }
-        body.setLength(body.length()-1); // remove redundant ',' at the end
+        body.setLength(body.length() - 1); // remove redundant ',' at the end
         body.append("]");
 
         MediaType type = MediaType.parse("application/json");
@@ -125,7 +126,7 @@ public class Translator {
             return response.body().source().readString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             System.err.println("Error during request:" + e.getMessage());
-            return "Error during translation";
+            return "error in translation"; // translation API is not 100% reliable
         }
     }
 
@@ -141,8 +142,10 @@ public class Translator {
          *   {..}
          * ]
          */
-        List<String> results = new ArrayList<>();
 
+        List<String> results = new ArrayList<>();
+        // translation API is not 100% reliable
+        if (Objects.equals(body, "error in translation")) return results;
         JsonArray translations = JsonParser.parseString(body).getAsJsonArray();
         for (JsonElement element : translations) {
             results.add(element
@@ -158,6 +161,7 @@ public class Translator {
     }
 
     private static void decryptAPIKey() {
+        // The clear API key is not directly stored in the file to make misuse slightly harder
         StringBuilder result = new StringBuilder(OBFUSCATED_API_KEY);
         result.deleteCharAt(3);
         result.deleteCharAt(17);

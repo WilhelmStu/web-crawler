@@ -75,7 +75,7 @@ public class MarkdownExporter {
 
     private List<String> getFormattedContent(List<String> headings, int[] depths, int depthOffset) {
         List<String> formattedContent = new ArrayList<>();
-        for (int i = 0; i < depths.length; i++) {
+        for (int i = 0; i < headings.size(); i++) {
             int repeatFor = Math.max(0, Math.min(depths[i] + depthOffset, 4));
             formattedContent.add("#".repeat(repeatFor) + " " + headings.get(i));
         }
@@ -86,26 +86,28 @@ public class MarkdownExporter {
         List<String> formattedContent = new ArrayList<>();
         formattedContent.add("<br>\n\n___");
         formattedContent.add("\n### Children of: " + parentWebsite.getUrl());
-        formattedContent.add("___");
         getSubWebsiteContentRecursively(parentWebsite, formattedContent, depth);
         return formattedContent;
     }
 
     private void getSubWebsiteContentRecursively(CrawledWebsite parentWebsite, List<String> formattedContent, int depth) {
-        if (parentWebsite.getLinkedWebsites().isEmpty()){
-            if(parentWebsite.getBrokenLinks().isEmpty()){
+        if (parentWebsite.getLinkedWebsites().isEmpty()) {
+            if (parentWebsite.getBrokenLinks().isEmpty()) {
                 formattedContent.add("### No links found");
-            }else{
+            } else {
                 formattedContent.addAll(getFormattedBrokenLinks(parentWebsite.getBrokenLinks()));
             }
             return;
         }
 
         for (CrawledWebsite subWebsite : parentWebsite.getLinkedWebsites()) {
+            formattedContent.add("___");
             formattedContent.add("### Link to: " + subWebsite.getUrl());
             formattedContent.addAll(getFormattedMainContent(subWebsite, 2));
-            formattedContent.add("<br>\n");
+            formattedContent.add("\n");
             formattedContent.addAll(getFormattedBrokenLinks(parentWebsite.getBrokenLinks()));
+        }
+        for (CrawledWebsite subWebsite : parentWebsite.getLinkedWebsites()) {
             if (depth > 1) {
                 formattedContent.addAll(getFormattedSubWebsiteContent(subWebsite, parentWebsite.getDepth() - 1));
             }

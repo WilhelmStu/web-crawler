@@ -18,6 +18,7 @@ public class CrawledWebsite {
         this.headings = new ArrayList<>();
         this.linkedWebsites = new ArrayList<>();
         this.brokenLinks = new ArrayList<>();
+        this.target = Language.ENGLISH;
     }
 
     public CrawledWebsite(String url) {
