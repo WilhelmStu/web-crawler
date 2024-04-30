@@ -161,6 +161,7 @@ public class Translator {
     }
 
     private static void decryptAPIKey() {
+        // The clear API key is not directly stored in the file to make misuse slightly harder
         StringBuilder result = new StringBuilder(OBFUSCATED_API_KEY);
         result.deleteCharAt(3);
         result.deleteCharAt(17);

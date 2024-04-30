@@ -84,11 +84,11 @@ public class WebCrawler {
         return new ArrayList<>(linksToCrawl);
     }
 
-    public static void reset(){
+    public static void reset() {
         alreadyVisited.clear();
     }
 
-    public static Set<String> getAlreadyVisited(){
+    public static Set<String> getAlreadyVisited() {
         return alreadyVisited;
     }
 

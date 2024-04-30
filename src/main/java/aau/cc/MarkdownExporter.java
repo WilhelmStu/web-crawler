@@ -91,10 +91,10 @@ public class MarkdownExporter {
     }
 
     private void getSubWebsiteContentRecursively(CrawledWebsite parentWebsite, List<String> formattedContent, int depth) {
-        if (parentWebsite.getLinkedWebsites().isEmpty()){
-            if(parentWebsite.getBrokenLinks().isEmpty()){
+        if (parentWebsite.getLinkedWebsites().isEmpty()) {
+            if (parentWebsite.getBrokenLinks().isEmpty()) {
                 formattedContent.add("### No links found");
-            }else{
+            } else {
                 formattedContent.addAll(getFormattedBrokenLinks(parentWebsite.getBrokenLinks()));
             }
             return;
