@@ -104,7 +104,7 @@ public class MarkdownExporter {
         for (CrawledWebsite subWebsite : parentWebsite.getLinkedWebsites()) {
             formattedContent.add("### Link to: " + subWebsite.getUrl());
             formattedContent.addAll(getFormattedMainContent(subWebsite, 2));
-            formattedContent.add("<br>\n");
+            formattedContent.add("\n");
             formattedContent.addAll(getFormattedBrokenLinks(parentWebsite.getBrokenLinks()));
             if (depth > 1) {
                 formattedContent.addAll(getFormattedSubWebsiteContent(subWebsite, parentWebsite.getDepth() - 1));
