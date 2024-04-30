@@ -28,6 +28,7 @@ public class WebCrawler {
 
             for (String link : links) {
                 CrawledWebsite linkedWebsite = new CrawledWebsite(link, depth - 1);
+                linkedWebsite.setTarget(website.getTarget());
                 if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && depth > 1) {
                     linkedWebsite = crawlWebsite(linkedWebsite, domains);
                 }

@@ -43,8 +43,7 @@ public class Main {
         } while (targetLanguage == null);
 
         System.out.print("""
-                Enter the domain(s) to be crawled\s
-                (comma-separated if multiple, leave empty if all)
+                Enter the domain(s) to be crawled (comma-separated if multiple, leave empty if all)
                 e.g. website.at, sub.website.at, website.de:\s""");
         String domainsInput = sc.nextLine();
         domains = domainsInput.split(",");
