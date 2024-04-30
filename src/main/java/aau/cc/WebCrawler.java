@@ -8,10 +8,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class WebCrawler {
     private static final Set<String> alreadyVisited = new HashSet<>();
@@ -42,7 +39,7 @@ public class WebCrawler {
             }
 
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            // error fetching site -> it will be handled as broken link
             return null;
         }
 
@@ -51,7 +48,7 @@ public class WebCrawler {
 
     public static List<Heading> getHeadingsOfWebsite(Document document) {
         Elements headings = document.select("h1, h2, h3, h4, h5, h6");
-        Set<Heading> headingsSet = new HashSet<>(); // use set to prevent duplicates
+        Set<Heading> headingsSet = new LinkedHashSet<>(); // set to prevent duplicates
         for (Element heading : headings) {
             int headingDepth = Integer.parseInt(heading.tagName().substring(1));
             headingsSet.add(new Heading(heading.text(), headingDepth));
@@ -61,7 +58,7 @@ public class WebCrawler {
 
     public static List<String> getLinksOfWebsite(Document document) {
         Elements links = document.select("a[href]");
-        Set<String> linkSet = new HashSet<>(); // use set to prevent duplicates
+        Set<String> linkSet = new LinkedHashSet<>(); // set to prevent duplicates
         for (Element link : links) {
             String linkUrl = link.absUrl("href");
             linkSet.add(linkUrl);
@@ -70,7 +67,7 @@ public class WebCrawler {
     }
 
     public static List<String> getLinksToCrawl(String[] domains, List<String> links) {
-        Set<String> linksToCrawl = new HashSet<>();
+        Set<String> linksToCrawl = new LinkedHashSet<>();
         if (domains != null) {
             for (String link : links) {
                 for (String domain : domains) {
@@ -84,6 +81,14 @@ public class WebCrawler {
             linksToCrawl.addAll(links);
         }
         return new ArrayList<>(linksToCrawl);
+    }
+
+    public static void reset(){
+        alreadyVisited.clear();
+    }
+
+    public static Set<String> getAlreadyVisited(){
+        return alreadyVisited;
     }
 
 }
