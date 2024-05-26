@@ -2,6 +2,7 @@ package aau.cc;
 
 import aau.cc.model.CrawledWebsite;
 import aau.cc.model.Heading;
+import aau.cc.model.WebsiteToCrawl;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -14,14 +15,15 @@ public class WebCrawler {
     private static final Set<String> alreadyVisited = new HashSet<>();
     private static final int FETCH_TIMEOUT = 3000;
 
-    public static CrawledWebsite crawlWebsite(CrawledWebsite website, List<String> domains) {
+    public static CrawledWebsite crawlWebsite(WebsiteToCrawl website, List<String> domains) {
         alreadyVisited.add(website.getUrl());
         String url = website.getUrl();
         int depth = website.getDepth();
+        CrawledWebsite crawledWebsite = new CrawledWebsite(website);
 
         try {
             Document document = Jsoup.parse(new URL(url), FETCH_TIMEOUT);
-            website.setHeadings(getHeadingsOfWebsite(document));
+            crawledWebsite.setHeadings(getHeadingsOfWebsite(document));
 
             List<String> links = getLinksOfWebsite(document);
             List<String> linksToCrawl = getLinksToCrawl(domains, links);
@@ -33,9 +35,9 @@ public class WebCrawler {
                     linkedWebsite = crawlWebsite(linkedWebsite, domains);
                 }
                 if (linkedWebsite != null) {
-                    website.addLinkedWebsite(linkedWebsite);
+                    crawledWebsite.addLinkedWebsite(linkedWebsite);
                 } else {
-                    website.addBrokenLink(link);
+                    crawledWebsite.addBrokenLink(link);
                 }
             }
 
@@ -44,7 +46,7 @@ public class WebCrawler {
             return null;
         }
 
-        return website;
+        return crawledWebsite;
     }
 
     public static List<Heading> getHeadingsOfWebsite(Document document) {

@@ -3,6 +3,7 @@ package aau.cc;
 
 import aau.cc.model.CrawledWebsite;
 import aau.cc.model.Language;
+import aau.cc.model.WebsiteToCrawl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,28 +18,30 @@ public class Main {
 
 
     public static void main(String[] args) {
-        getUserInput();
-        CrawledWebsite website = new CrawledWebsite(urls.get(0), depth);
-        website.setSource(Language.GERMAN);
-        if(targetLanguage != null) {
-            website.setTarget(targetLanguage);
+        askUserForInput();
+        List<CrawledWebsite> crawledWebsites = new ArrayList<>();
+        for (String url : urls) {
+            WebsiteToCrawl website = new WebsiteToCrawl(url, depth);
+            if(targetLanguage != null) {
+                website.setTarget(targetLanguage);
+            }
+            CrawledWebsite crawledWebsite = WebCrawler.crawlWebsite(website, domains);
+            crawledWebsites.add(crawledWebsite);
         }
 
-        WebCrawler.crawlWebsite(website, domains);
-
         MarkdownExporter exporter = new MarkdownExporter(targetLanguage == null);
-        exporter.generateMarkdownFile("out.md", website);
+        exporter.generateMarkdownFile("out.md", crawledWebsites.get(0));
     }
 
     // todo: move to extra class for user input (SRP) (same for others below)
-    protected static void getUserInput() {
-        getURLsFromUser();
-        getCrawlingDepthFromUser();
-        getTargetLanguageFromUser();
-        getDomainsToBeCrawledFromUser();
+    protected static void askUserForInput() {
+        askUserForURLs();
+        askUserForCrawlingDepth();
+        askUserForTargetLanguage();
+        askUserForDomainsToBeCrawled();
     }
 
-    protected static void getURLsFromUser(){
+    protected static void askUserForURLs(){
         System.out.println("Enter multiple URLs to be crawled (empty line to proceed):");
         String url;
         while(!(url = scanner.nextLine()).isEmpty()){
@@ -46,17 +49,17 @@ public class Main {
         }
         if (urls.isEmpty()) {
             System.out.println("Error. At least 1 URL is required!");
-            getURLsFromUser();
+            askUserForURLs();
         }
     }
 
-    protected static void getCrawlingDepthFromUser(){
+    protected static void askUserForCrawlingDepth(){
         System.out.print("Enter the depth of websites to crawl: ");
         depth = scanner.nextInt();
         scanner.nextLine();
     }
 
-    protected static void getTargetLanguageFromUser(){
+    protected static void askUserForTargetLanguage(){
         do {
             System.out.print("Enter the target language code (e.g., en, de, fr, it, es, or none): ");
             String inputLanguage = scanner.nextLine().trim().toLowerCase();
@@ -68,7 +71,7 @@ public class Main {
         } while (targetLanguage == null);
     }
 
-    protected static void getDomainsToBeCrawledFromUser(){
+    protected static void askUserForDomainsToBeCrawled(){
         System.out.print("""
                 Enter the domain(s) to be crawled (leave empty if all)
                 e.g. website.at, sub.website.at, website.de:\s""");

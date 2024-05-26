@@ -3,26 +3,34 @@ package aau.cc.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CrawledWebsite {
-    private String url;
-    private int depth;
+public class CrawledWebsite extends WebsiteToCrawl {
     private List<Heading> headings;
-    private Language source;
-    private Language target;
     private List<CrawledWebsite> linkedWebsites;
     private List<String> brokenLinks;
 
+    public CrawledWebsite(WebsiteToCrawl websiteToCrawl) {
+        super(websiteToCrawl);
+        initLists();
+    }
+
+    public CrawledWebsite(String url, int depth, Language source, Language target) {
+        super(url, depth, source, target);
+        initLists();
+    }
+
     public CrawledWebsite(String url, int depth) {
-        this.url = url;
-        this.depth = depth;
-        this.headings = new ArrayList<>();
-        this.linkedWebsites = new ArrayList<>();
-        this.brokenLinks = new ArrayList<>();
-        this.target = Language.ENGLISH;
+        super(url, depth, Language.GERMAN, Language.ENGLISH);
+        initLists();
     }
 
     public CrawledWebsite(String url) {
         this(url, 1);
+    }
+
+    private void initLists(){
+        this.headings = new ArrayList<>();
+        this.linkedWebsites = new ArrayList<>();
+        this.brokenLinks = new ArrayList<>();
     }
 
     public void addHeading(Heading heading){
@@ -53,44 +61,12 @@ public class CrawledWebsite {
         return headingsDepths;
     }
 
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public int getDepth() {
-        return depth;
-    }
-
-    public void setDepth(int depth) {
-        this.depth = depth;
-    }
-
     public List<Heading> getHeadings() {
         return headings;
     }
 
     public void setHeadings(List<Heading> headings) {
         this.headings = headings;
-    }
-
-    public Language getSource() {
-        return source;
-    }
-
-    public void setSource(Language source) {
-        this.source = source;
-    }
-
-    public Language getTarget() {
-        return target;
-    }
-
-    public void setTarget(Language target) {
-        this.target = target;
     }
 
     public List<CrawledWebsite> getLinkedWebsites() {
