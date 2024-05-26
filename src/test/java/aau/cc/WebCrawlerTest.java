@@ -27,7 +27,7 @@ public class WebCrawlerTest {
             "<h4>Heading 3</h4>" +
             "</body>" +
             "</html>";
-    private static final String[] DOMAINS = {"example.org"};
+    private static final List<String> DOMAINS = List.of("example.org");
     private Document document;
     private CrawledWebsite website;
 

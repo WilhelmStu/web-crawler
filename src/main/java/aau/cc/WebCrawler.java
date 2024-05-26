@@ -14,7 +14,7 @@ public class WebCrawler {
     private static final Set<String> alreadyVisited = new HashSet<>();
     private static final int FETCH_TIMEOUT = 3000;
 
-    public static CrawledWebsite crawlWebsite(CrawledWebsite website, String[] domains) {
+    public static CrawledWebsite crawlWebsite(CrawledWebsite website, List<String> domains) {
         alreadyVisited.add(website.getUrl());
         String url = website.getUrl();
         int depth = website.getDepth();
@@ -67,9 +67,9 @@ public class WebCrawler {
         return new ArrayList<>(linkSet);
     }
 
-    public static List<String> getLinksToCrawl(String[] domains, List<String> links) {
+    public static List<String> getLinksToCrawl(List<String> domains, List<String> links) {
         Set<String> linksToCrawl = new LinkedHashSet<>();
-        if (domains != null) {
+        if (domains != null && !domains.isEmpty()) {
             for (String link : links) {
                 for (String domain : domains) {
                     if (link.contains(domain)) {
