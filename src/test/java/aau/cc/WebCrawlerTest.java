@@ -9,6 +9,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -30,6 +32,7 @@ public class WebCrawlerTest {
     private static final List<String> DOMAINS = List.of("example.org");
     private Document document;
     private CrawledWebsite website;
+    private final Set<String> alreadyVisited = Collections.synchronizedSet(new HashSet<>());
 
 
     @BeforeEach
@@ -106,36 +109,36 @@ public class WebCrawlerTest {
 
     @Test
     public void testCrawlWebsiteBasic() {
-        website = WebCrawler.crawlWebsite(website, DOMAINS);
+        website = WebCrawler.crawlWebsite(website, DOMAINS, alreadyVisited);
         assertNotNull(website);
     }
 
     @Test
     public void testCrawlWebsiteNullDomains() {
-        website = WebCrawler.crawlWebsite(website, null);
+        website = WebCrawler.crawlWebsite(website, null, alreadyVisited);
         assertNotNull(website);
     }
 
     @Test
     public void testCrawlWebsiteError() {
         website.setUrl("Error.net");
-        website = WebCrawler.crawlWebsite(website, DOMAINS);
+        website = WebCrawler.crawlWebsite(website, DOMAINS, alreadyVisited);
         assertNull(website);
     }
 
-    @Test
-    public void testGetAlreadyVisited() {
-        website = WebCrawler.crawlWebsite(website, DOMAINS);
-        Set<String> set = WebCrawler.getAlreadyVisited();
-        assertFalse(set.isEmpty());
-    }
-
-    @Test
-    public void testResetWebCrawler() {
-        website = WebCrawler.crawlWebsite(website, DOMAINS);
-        WebCrawler.reset();
-        assertTrue(WebCrawler.getAlreadyVisited().isEmpty());
-    }
+    //@Test
+    //public void testGetAlreadyVisited() {
+    //    website = WebCrawler.crawlWebsite(website, DOMAINS, alreadyVisited);
+    //    Set<String> set = WebCrawler.getAlreadyVisited();
+    //    assertFalse(set.isEmpty());
+    //}
+//
+    //@Test
+    //public void testResetWebCrawler() {
+    //    website = WebCrawler.crawlWebsite(website, DOMAINS, alreadyVisited);
+    //    WebCrawler.reset();
+    //    assertTrue(WebCrawler.getAlreadyVisited().isEmpty());
+    //}
 
     private void assertHeadingText(List<Heading> result) {
         assertEquals("Heading 1", result.get(0).getText());

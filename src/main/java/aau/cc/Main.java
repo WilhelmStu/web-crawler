@@ -19,16 +19,17 @@ public class Main {
 
     public static void main(String[] args) {
         askUserForInput();
-        List<CrawledWebsite> crawledWebsites = new ArrayList<>();
+        List<WebsiteToCrawl> websitesToCrawls = new ArrayList<>();
         for (String url : urls) {
             WebsiteToCrawl website = new WebsiteToCrawl(url, depth);
             if(targetLanguage != null) {
                 website.setTarget(targetLanguage);
             }
-            CrawledWebsite crawledWebsite = WebCrawler.crawlWebsite(website, domains);
-            crawledWebsites.add(crawledWebsite);
+            websitesToCrawls.add(website);
         }
+        List<CrawledWebsite> crawledWebsites = WebCrawler.crawlWebsites(websitesToCrawls, domains);
 
+        System.out.println("Crawling done. Writing to out.md..");
         MarkdownExporter exporter = new MarkdownExporter(targetLanguage == null);
         exporter.generateMarkdownFile("out.md", crawledWebsites.get(0));
     }
@@ -39,6 +40,8 @@ public class Main {
         askUserForCrawlingDepth();
         askUserForTargetLanguage();
         askUserForDomainsToBeCrawled();
+        scanner.close();
+        System.out.println("Got user input. Proceeding to crawl..");
     }
 
     protected static void askUserForURLs(){
@@ -55,7 +58,7 @@ public class Main {
 
     protected static void askUserForCrawlingDepth(){
         System.out.print("Enter the depth of websites to crawl: ");
-        depth = scanner.nextInt();
+        depth = scanner.nextInt(); // todo catch exception
         scanner.nextLine();
     }
 
@@ -72,10 +75,9 @@ public class Main {
     }
 
     protected static void askUserForDomainsToBeCrawled(){
-        System.out.print("""
-                Enter the domain(s) to be crawled (leave empty if all)
-                e.g. website.at, sub.website.at, website.de:\s""");
+        System.out.println("Enter the domain(s) to be crawled (leave empty if all)\ne.g. website.at, sub.website.at, website.de:");
         String domain;
+        //scanner.reset();
         while(!(domain = scanner.nextLine()).isEmpty()){
             domains.add(domain);
         }

@@ -10,16 +10,67 @@ import org.jsoup.select.Elements;
 
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.*;
+
+class CrawlTask implements Callable<CrawledWebsite> {
+    private final WebsiteToCrawl website;
+    private final List<String> domains;
+    private final Set<String> alreadyVisited;
+
+    public CrawlTask(WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
+        this.website = website;
+        this.domains = domains;
+        this.alreadyVisited = alreadyVisited;
+    }
+
+    @Override
+    public CrawledWebsite call() throws Exception {
+        System.out.println("Called!");
+        return WebCrawler.crawlWebsite(website, domains, alreadyVisited);
+    }
+}
 
 public class WebCrawler {
-    private static final Set<String> alreadyVisited = new HashSet<>();
     private static final int FETCH_TIMEOUT = 3000;
+    private static final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    public static CrawledWebsite crawlWebsite(WebsiteToCrawl website, List<String> domains) {
+    public static List<CrawledWebsite> crawlWebsites(List<WebsiteToCrawl> websites, List<String> domains) {
+        List<CrawledWebsite> crawledWebsites = new ArrayList<>();
+        List<Future<CrawledWebsite>> futures = new ArrayList<>();
+
+        for (WebsiteToCrawl website : websites) {
+            Set<String> alreadyVisited = Collections.synchronizedSet(new HashSet<>());
+            futures.add(executorService.submit(new CrawlTask(website, domains, alreadyVisited)));
+        }
+
+        for (Future<CrawledWebsite> future : futures) {
+            try {
+                CrawledWebsite crawledWebsite = future.get();
+                if (crawledWebsite != null) {
+                    crawledWebsites.add(crawledWebsite);
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt();
+            }
+        }
+        executorService.shutdown();
+
+        return crawledWebsites;
+    }
+
+    public static CrawledWebsite crawlWebsite(WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
         alreadyVisited.add(website.getUrl());
         String url = website.getUrl();
         int depth = website.getDepth();
-        CrawledWebsite crawledWebsite = new CrawledWebsite(website);
+
+        // todo move inside CrawledWebsite as factory
+        CrawledWebsite crawledWebsite;
+        if (website instanceof CrawledWebsite) {
+            crawledWebsite = (CrawledWebsite) website;
+        } else {
+            crawledWebsite = new CrawledWebsite(website);
+        }
 
         try {
             Document document = Jsoup.parse(new URL(url), FETCH_TIMEOUT);
@@ -28,16 +79,30 @@ public class WebCrawler {
             List<String> links = getLinksOfWebsite(document);
             List<String> linksToCrawl = getLinksToCrawl(domains, links);
 
+            Map<Future<CrawledWebsite>, String> futureToLinkMap = new ConcurrentHashMap<>();
             for (String link : links) {
-                CrawledWebsite linkedWebsite = new CrawledWebsite(link, depth - 1);
-                linkedWebsite.setTarget(website.getTarget());
+                CrawledWebsite linkedWebsite = new CrawledWebsite(link, depth - 1, website.getSource(), website.getTarget());
                 if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && depth > 1) {
-                    linkedWebsite = crawlWebsite(linkedWebsite, domains);
-                }
-                if (linkedWebsite != null) {
+                    Future<CrawledWebsite> future = executorService.submit(() -> crawlWebsite(linkedWebsite, domains, alreadyVisited));
+                    futureToLinkMap.put(future, link);
+                }else {
                     crawledWebsite.addLinkedWebsite(linkedWebsite);
-                } else {
-                    crawledWebsite.addBrokenLink(link);
+                }
+            }
+            
+            for (Map.Entry<Future<CrawledWebsite>, String> entry : futureToLinkMap.entrySet()) {
+                try {
+                    Future<CrawledWebsite> future = entry.getKey();
+                    String link = entry.getValue();
+                    CrawledWebsite linkedWebsite = future.get();
+                    if (linkedWebsite != null) {
+                        crawledWebsite.addLinkedWebsite(linkedWebsite);
+                    } else {
+                        crawledWebsite.addBrokenLink(link);
+                    }
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                    Thread.currentThread().interrupt(); // Set interrupt flag
                 }
             }
 
@@ -84,14 +149,6 @@ public class WebCrawler {
             linksToCrawl.addAll(links);
         }
         return new ArrayList<>(linksToCrawl);
-    }
-
-    public static void reset() {
-        alreadyVisited.clear();
-    }
-
-    public static Set<String> getAlreadyVisited() {
-        return alreadyVisited;
     }
 
 }
