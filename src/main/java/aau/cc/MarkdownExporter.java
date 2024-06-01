@@ -33,7 +33,7 @@ public class MarkdownExporter {
         File mdFile = getMarkdownFile(filePath);
         if (mdFile.exists()){
             if(mdFile.delete()){
-                System.out.println("Deleted: " + mdFile.getAbsolutePath());
+                System.out.println("Deleted old file: " + mdFile.getAbsolutePath());
             }else{
                 System.err.println("Failed to delete file: " + mdFile.getAbsolutePath());
             }
@@ -54,7 +54,7 @@ public class MarkdownExporter {
         writeToFile(writer, getFormattedHeaderContent(website, skipTranslation));
 
         writer.write("\n## Overview of: " + website.getUrl() + "\n\n");
-        System.out.println("Writing to: " + file.getAbsolutePath());
+        System.out.println("Writing website: "+ website.getUrl() +" to: " + file.getAbsolutePath());
         writeToFile(writer, getFormattedMainContent(website, 0));
         writer.write("\n___\n");
 

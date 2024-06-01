@@ -13,11 +13,13 @@ import java.util.*;
 import java.util.concurrent.*;
 
 class CrawlTask implements Callable<CrawledWebsite> {
+    private final WebCrawler webCrawler;
     private final WebsiteToCrawl website;
     private final List<String> domains;
     private final Set<String> alreadyVisited;
 
-    public CrawlTask(WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
+    public CrawlTask(WebCrawler webCrawler, WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
+        this.webCrawler = webCrawler;
         this.website = website;
         this.domains = domains;
         this.alreadyVisited = alreadyVisited;
@@ -25,22 +27,21 @@ class CrawlTask implements Callable<CrawledWebsite> {
 
     @Override
     public CrawledWebsite call() throws Exception {
-        System.out.println("Called!");
-        return WebCrawler.crawlWebsite(website, domains, alreadyVisited);
+        return webCrawler.crawlWebsite(website, domains, alreadyVisited);
     }
 }
 
 public class WebCrawler {
     private static final int FETCH_TIMEOUT = 3000;
-    private static final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    public static List<CrawledWebsite> crawlWebsites(List<WebsiteToCrawl> websites, List<String> domains) {
+    public List<CrawledWebsite> crawlWebsites(List<WebsiteToCrawl> websites, List<String> domains) {
         List<CrawledWebsite> crawledWebsites = new ArrayList<>();
         List<Future<CrawledWebsite>> futures = new ArrayList<>();
 
         for (WebsiteToCrawl website : websites) {
             Set<String> alreadyVisited = Collections.synchronizedSet(new HashSet<>());
-            futures.add(executorService.submit(new CrawlTask(website, domains, alreadyVisited)));
+            futures.add(executorService.submit(new CrawlTask(this,website, domains, alreadyVisited)));
         }
 
         for (Future<CrawledWebsite> future : futures) {
@@ -59,7 +60,7 @@ public class WebCrawler {
         return crawledWebsites;
     }
 
-    public static CrawledWebsite crawlWebsite(WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
+    public CrawledWebsite crawlWebsite(WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
         alreadyVisited.add(website.getUrl());
         String url = website.getUrl();
         int depth = website.getDepth();
@@ -115,7 +116,7 @@ public class WebCrawler {
         return crawledWebsite;
     }
 
-    public static List<Heading> getHeadingsOfWebsite(Document document) {
+    public List<Heading> getHeadingsOfWebsite(Document document) {
         Elements headings = document.select("h1, h2, h3, h4, h5, h6");
         Set<Heading> headingsSet = new LinkedHashSet<>(); // set to prevent duplicates
         for (Element heading : headings) {
@@ -125,7 +126,7 @@ public class WebCrawler {
         return new ArrayList<>(headingsSet);
     }
 
-    public static List<String> getLinksOfWebsite(Document document) {
+    public List<String> getLinksOfWebsite(Document document) {
         Elements links = document.select("a[href]");
         Set<String> linkSet = new LinkedHashSet<>(); // set to prevent duplicates
         for (Element link : links) {
@@ -135,7 +136,7 @@ public class WebCrawler {
         return new ArrayList<>(linkSet);
     }
 
-    public static List<String> getLinksToCrawl(List<String> domains, List<String> links) {
+    public List<String> getLinksToCrawl(List<String> domains, List<String> links) {
         Set<String> linksToCrawl = new LinkedHashSet<>();
         if (domains != null && !domains.isEmpty()) {
             for (String link : links) {
