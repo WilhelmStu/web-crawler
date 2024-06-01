@@ -1,7 +1,5 @@
-package aau.cc;
+package aau.cc.model;
 
-import aau.cc.model.CrawledWebsite;
-import aau.cc.model.Heading;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

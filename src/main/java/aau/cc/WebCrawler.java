@@ -1,14 +1,10 @@
 package aau.cc;
 
+import aau.cc.external.HTMLParserAdapter;
 import aau.cc.model.CrawledWebsite;
-import aau.cc.model.Heading;
 import aau.cc.model.WebsiteToCrawl;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
-import java.net.URL;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -26,7 +22,7 @@ class CrawlTask implements Callable<CrawledWebsite> {
     }
 
     @Override
-    public CrawledWebsite call() throws Exception {
+    public CrawledWebsite call() {
         return webCrawler.crawlWebsite(website, domains, alreadyVisited);
     }
 }
@@ -41,7 +37,7 @@ public class WebCrawler {
 
         for (WebsiteToCrawl website : websites) {
             Set<String> alreadyVisited = Collections.synchronizedSet(new HashSet<>());
-            futures.add(executorService.submit(new CrawlTask(this,website, domains, alreadyVisited)));
+            futures.add(executorService.submit(new CrawlTask(this, website, domains, alreadyVisited)));
         }
 
         for (Future<CrawledWebsite> future : futures) {
@@ -60,80 +56,51 @@ public class WebCrawler {
         return crawledWebsites;
     }
 
+    // todo handle case where start link is already invalid
     public CrawledWebsite crawlWebsite(WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
         alreadyVisited.add(website.getUrl());
         String url = website.getUrl();
         int depth = website.getDepth();
+        CrawledWebsite crawledWebsite = CrawledWebsite.from(website);
 
-        // todo move inside CrawledWebsite as factory
-        CrawledWebsite crawledWebsite;
-        if (website instanceof CrawledWebsite) {
-            crawledWebsite = (CrawledWebsite) website;
-        } else {
-            crawledWebsite = new CrawledWebsite(website);
+
+        HTMLParserAdapter htmlParser = new HTMLParserAdapter();
+        if (!htmlParser.fetchHTMLFromURL(url, FETCH_TIMEOUT) || !htmlParser.hasDocument()) {
+            return null; // todo don't return null
+        }
+        crawledWebsite.setHeadings(htmlParser.getHeadingsFromHTML());
+        List<String> links = htmlParser.getLinksFromHTML();
+        List<String> linksToCrawl = getLinksToCrawl(domains, links);
+
+        Map<Future<CrawledWebsite>, String> futureToLinkMap = new ConcurrentHashMap<>();
+        for (String link : links) {
+            CrawledWebsite linkedWebsite = new CrawledWebsite(link, depth - 1, website.getSource(), website.getTarget());
+            if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && depth > 1) {
+                Future<CrawledWebsite> future = executorService.submit(() -> crawlWebsite(linkedWebsite, domains, alreadyVisited));
+                futureToLinkMap.put(future, link);
+            } else {
+                crawledWebsite.addLinkedWebsite(linkedWebsite);
+            }
         }
 
-        try {
-            Document document = Jsoup.parse(new URL(url), FETCH_TIMEOUT);
-            crawledWebsite.setHeadings(getHeadingsOfWebsite(document));
-
-            List<String> links = getLinksOfWebsite(document);
-            List<String> linksToCrawl = getLinksToCrawl(domains, links);
-
-            Map<Future<CrawledWebsite>, String> futureToLinkMap = new ConcurrentHashMap<>();
-            for (String link : links) {
-                CrawledWebsite linkedWebsite = new CrawledWebsite(link, depth - 1, website.getSource(), website.getTarget());
-                if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && depth > 1) {
-                    Future<CrawledWebsite> future = executorService.submit(() -> crawlWebsite(linkedWebsite, domains, alreadyVisited));
-                    futureToLinkMap.put(future, link);
-                }else {
+        for (Map.Entry<Future<CrawledWebsite>, String> entry : futureToLinkMap.entrySet()) {
+            try {
+                Future<CrawledWebsite> future = entry.getKey();
+                String link = entry.getValue();
+                CrawledWebsite linkedWebsite = future.get();
+                if (linkedWebsite != null) {
                     crawledWebsite.addLinkedWebsite(linkedWebsite);
+                } else {
+                    crawledWebsite.addBrokenLink(link);
                 }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+                Thread.currentThread().interrupt(); // Set interrupt flag
             }
-            
-            for (Map.Entry<Future<CrawledWebsite>, String> entry : futureToLinkMap.entrySet()) {
-                try {
-                    Future<CrawledWebsite> future = entry.getKey();
-                    String link = entry.getValue();
-                    CrawledWebsite linkedWebsite = future.get();
-                    if (linkedWebsite != null) {
-                        crawledWebsite.addLinkedWebsite(linkedWebsite);
-                    } else {
-                        crawledWebsite.addBrokenLink(link);
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    e.printStackTrace();
-                    Thread.currentThread().interrupt(); // Set interrupt flag
-                }
-            }
-
-        } catch (Exception e) { // todo handle case where start link is already invalid
-            System.err.println(e.getMessage());
-            // error fetching site -> it will be handled as broken link
-            return null;
         }
+
 
         return crawledWebsite;
-    }
-
-    public List<Heading> getHeadingsOfWebsite(Document document) {
-        Elements headings = document.select("h1, h2, h3, h4, h5, h6");
-        Set<Heading> headingsSet = new LinkedHashSet<>(); // set to prevent duplicates
-        for (Element heading : headings) {
-            int headingDepth = Integer.parseInt(heading.tagName().substring(1));
-            headingsSet.add(new Heading(heading.text(), headingDepth));
-        }
-        return new ArrayList<>(headingsSet);
-    }
-
-    public List<String> getLinksOfWebsite(Document document) {
-        Elements links = document.select("a[href]");
-        Set<String> linkSet = new LinkedHashSet<>(); // set to prevent duplicates
-        for (Element link : links) {
-            String linkUrl = link.absUrl("href");
-            linkSet.add(linkUrl);
-        }
-        return new ArrayList<>(linkSet);
     }
 
     public List<String> getLinksToCrawl(List<String> domains, List<String> links) {

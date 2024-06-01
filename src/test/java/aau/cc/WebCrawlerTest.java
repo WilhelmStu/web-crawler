@@ -1,11 +1,9 @@
 package aau.cc;
 
+import aau.cc.external.HTMLParserAdapter;
 import aau.cc.model.CrawledWebsite;
-import aau.cc.model.Heading;
 import aau.cc.model.Language;
 import aau.cc.model.WebsiteToCrawl;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,17 +26,19 @@ public class WebCrawlerTest {
             "</body>" +
             "</html>";
     private static final List<String> DOMAINS = List.of("example.org");
-    private Document document;
+    private static final String URL = "https://google.at";
+    private static final String EXPECTED_URL1 = "https://example.com";
+    private static final String EXPECTED_URL2 = "https://example.org";
+    private HTMLParserAdapter htmlParser;
     private WebCrawler webCrawler;
     private WebsiteToCrawl website;
     private List<WebsiteToCrawl> websites;
     private final Set<String> alreadyVisited = Collections.synchronizedSet(new HashSet<>());
-    private final String URL = "https://google.at";
-
 
     @BeforeEach
     public void setUp() {
-        document = Jsoup.parse(HTML);
+        htmlParser = new HTMLParserAdapter();
+        htmlParser.setDocumentFromString(HTML);
         webCrawler = new WebCrawler();
         website = new WebsiteToCrawl(URL, 2,Language.GERMAN, Language.ENGLISH);
         website.setSource(Language.GERMAN);
@@ -47,7 +47,7 @@ public class WebCrawlerTest {
 
     @AfterEach
     public void tearDown() {
-        document = null;
+        htmlParser = null;
     }
 
     private void setUpMultipleWebsites(){
@@ -57,59 +57,29 @@ public class WebCrawlerTest {
     }
 
     @Test
-    public void testSizeOfHeadingsOfWebsite() {
-        List<Heading> result = webCrawler.getHeadingsOfWebsite(document);
-        assertEquals(3, result.size());
-    }
-
-    @Test
-    public void testTextOfHeadingsOfWebsite() {
-        List<Heading> result = webCrawler.getHeadingsOfWebsite(document);
-        assertHeadingText(result);
-    }
-
-    @Test
-    public void testDepthOfHeadingsOfWebsite() {
-        List<Heading> result = webCrawler.getHeadingsOfWebsite(document);
-        assertHeadingDepth(result);
-    }
-
-    @Test
-    public void testSizeOfLinksOfWebsite() {
-        List<String> result = webCrawler.getLinksOfWebsite(document);
-        assertEquals(2, result.size());
-    }
-
-    @Test
-    public void testStringsOfLinksOfWebsite() {
-        List<String> result = webCrawler.getLinksOfWebsite(document);
-        assertLinks(result);
-    }
-
-    @Test
     public void testSizeOfWebsitesToCrawl() {
-        List<String> list = webCrawler.getLinksOfWebsite(document);
+        List<String> list = htmlParser.getLinksFromHTML();
         List<String> result = webCrawler.getLinksToCrawl(DOMAINS, list);
         assertEquals(1, result.size());
     }
 
     @Test
     public void testStringsOfWebsitesToCrawl() {
-        List<String> list = webCrawler.getLinksOfWebsite(document);
+        List<String> list = htmlParser.getLinksFromHTML();
         List<String> result = webCrawler.getLinksToCrawl(DOMAINS, list);
-        assertEquals("https://example.org", result.get(0));
+        assertEquals(EXPECTED_URL2, result.get(0));
     }
 
     @Test
     public void testSizeOfWebsitesToCrawlNullDomains() {
-        List<String> list = webCrawler.getLinksOfWebsite(document);
+        List<String> list = htmlParser.getLinksFromHTML();
         List<String> result = webCrawler.getLinksToCrawl(null, list);
         assertEquals(2, result.size());
     }
 
     @Test
     public void testStringsOfWebsitesToCrawlNullDomains() {
-        List<String> list = webCrawler.getLinksOfWebsite(document);
+        List<String> list = htmlParser.getLinksFromHTML();
         List<String> result = webCrawler.getLinksToCrawl(null, list);
         assertLinks(result);
     }
@@ -123,6 +93,12 @@ public class WebCrawlerTest {
     @Test
     public void testCrawlWebsiteNullDomains() {
         website = webCrawler.crawlWebsite(website, null, alreadyVisited);
+        assertNotNull(website);
+    }
+
+    @Test
+    public void testCrawlWebsiteEmptyDomains() {
+        website = webCrawler.crawlWebsite(website, Collections.emptyList(), alreadyVisited);
         assertNotNull(website);
     }
 
@@ -148,20 +124,8 @@ public class WebCrawlerTest {
         assertEquals(URL, websites1.get(1).getUrl());
     }
 
-    private void assertHeadingText(List<Heading> result) {
-        assertEquals("Heading 1", result.get(0).getText());
-        assertEquals("Heading 2", result.get(1).getText());
-        assertEquals("Heading 3", result.get(2).getText());
-    }
-
-    private void assertHeadingDepth(List<Heading> result) {
-        assertEquals(1, result.get(0).getDepth());
-        assertEquals(2, result.get(1).getDepth());
-        assertEquals(4, result.get(2).getDepth());
-    }
-
     private void assertLinks(List<String> result) {
-        assertEquals("https://example.com", result.get(0));
-        assertEquals("https://example.org", result.get(1));
+        assertEquals(EXPECTED_URL1, result.get(0));
+        assertEquals(EXPECTED_URL2, result.get(1));
     }
 }

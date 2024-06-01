@@ -27,35 +27,43 @@ public class CrawledWebsite extends WebsiteToCrawl {
         this(url, 1);
     }
 
-    private void initLists(){
+    private void initLists() {
         this.headings = new ArrayList<>();
         this.linkedWebsites = new ArrayList<>();
         this.brokenLinks = new ArrayList<>();
     }
 
-    public void addHeading(Heading heading){
+    public static CrawledWebsite from(WebsiteToCrawl website) {
+        if (website instanceof CrawledWebsite) {
+            return (CrawledWebsite) website;
+        } else {
+            return new CrawledWebsite(website);
+        }
+    }
+
+    public void addHeading(Heading heading) {
         this.headings.add(heading);
     }
 
-    public void addLinkedWebsite(CrawledWebsite linkedWebsite){
+    public void addLinkedWebsite(CrawledWebsite linkedWebsite) {
         this.linkedWebsites.add(linkedWebsite);
     }
 
-    public void addBrokenLink(String link){
+    public void addBrokenLink(String link) {
         this.brokenLinks.add(link);
     }
 
-    public List<String> getHeadingsTextsAsList(){
+    public List<String> getHeadingsTextsAsList() {
         List<String> headingsTexts = new ArrayList<>();
-        for(Heading heading : headings){
+        for (Heading heading : headings) {
             headingsTexts.add(heading.getText());
         }
         return headingsTexts;
     }
 
-    public int[] getHeadingsDepths(){
+    public int[] getHeadingsDepths() {
         int[] headingsDepths = new int[headings.size()];
-        for(int i = 0; i < headings.size(); i++){
+        for (int i = 0; i < headings.size(); i++) {
             headingsDepths[i] = headings.get(i).getDepth();
         }
         return headingsDepths;

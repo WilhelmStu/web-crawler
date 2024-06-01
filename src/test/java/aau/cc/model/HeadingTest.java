@@ -1,6 +1,5 @@
-package aau.cc;
+package aau.cc.model;
 
-import aau.cc.model.Heading;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
