@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class CrawledWebsiteTest {
 
@@ -68,6 +68,25 @@ public class CrawledWebsiteTest {
         assertEquals(1, website.getBrokenLinks().size());
         assertEquals(BROKEN_LINK, website.getBrokenLinks().get(0));
     }
+
+    @Test
+    void testNotBrokenWebsite() {
+        assertFalse(website.hasBrokenUrl());
+    }
+
+    @Test
+    void testBrokenWebsite() {
+        website = new CrawledWebsite(WEBSITE_URL, true);
+        assertTrue(website.hasBrokenUrl());
+    }
+
+    @Test
+    void testBrokenWebsiteCollectionsEmpty() {
+        website = new CrawledWebsite(WEBSITE_URL, true);
+        assertTrue(website.getHeadingsTextsAsList().isEmpty());
+        assertEquals(0, website.getHeadingsDepths().length);
+    }
+
 
     private void assertHeadingsListAndSize(List<Heading> headings, int expectedSize){
         assertEquals(expectedSize, headings.size());

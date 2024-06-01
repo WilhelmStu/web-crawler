@@ -193,7 +193,7 @@ public class MarkdownExporterTest {
     }
 
     private void assertExportedChildrenContent(List<String> results, boolean translationSkipped) {
-        assertEquals("<br>\n\n___", results.get(0));
+        assertEquals("<br>\n___", results.get(0));
         assertEquals("\n### Children of: https://www.test.com", results.get(1));
         assertEquals("### Link to: https://www.subtest.com", results.get(3));
         List<String> subResults = results.subList(4, 6);

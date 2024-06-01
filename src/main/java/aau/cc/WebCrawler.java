@@ -3,43 +3,48 @@ package aau.cc;
 import aau.cc.external.HTMLParserAdapter;
 import aau.cc.model.CrawledWebsite;
 import aau.cc.model.WebsiteToCrawl;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
-class CrawlTask implements Callable<CrawledWebsite> {
-    private final WebCrawler webCrawler;
-    private final WebsiteToCrawl website;
-    private final List<String> domains;
-    private final Set<String> alreadyVisited;
-
-    public CrawlTask(WebCrawler webCrawler, WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
-        this.webCrawler = webCrawler;
-        this.website = website;
-        this.domains = domains;
-        this.alreadyVisited = alreadyVisited;
-    }
-
-    @Override
-    public CrawledWebsite call() {
-        return webCrawler.crawlWebsite(website, domains, alreadyVisited);
-    }
-}
-
 public class WebCrawler {
     private static final int FETCH_TIMEOUT = 3000;
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private static final int EXECUTOR_TIMEOUT = 10000;
+    private ExecutorService executorService;
+    private List<String> domains;
+    private List<CrawledWebsite> crawledWebsites;
 
-    public List<CrawledWebsite> crawlWebsites(List<WebsiteToCrawl> websites, List<String> domains) {
-        List<CrawledWebsite> crawledWebsites = new ArrayList<>();
+    public WebCrawler(List<String> domains) {
+        this.domains = domains;
+        executorService = Executors.newCachedThreadPool();
+        crawledWebsites = new ArrayList<>();
+    }
+
+    public WebCrawler() {
+        this(Collections.emptyList());
+    }
+
+    public List<CrawledWebsite> crawlWebsites(List<WebsiteToCrawl> websites) {
+        resetExecutorServiceIfDown();
+
+        List<Future<CrawledWebsite>> futures = createFutureForEachWebsite(websites);
+        collectCrawledWebsitesFromFutures(futures);
+
+        shutdownExecutorService();
+        return crawledWebsites;
+    }
+
+    private List<Future<CrawledWebsite>> createFutureForEachWebsite(List<WebsiteToCrawl> websites) {
         List<Future<CrawledWebsite>> futures = new ArrayList<>();
-
         for (WebsiteToCrawl website : websites) {
             Set<String> alreadyVisited = Collections.synchronizedSet(new HashSet<>());
-            futures.add(executorService.submit(new CrawlTask(this, website, domains, alreadyVisited)));
+            futures.add(executorService.submit(() -> crawlWebsite(website, alreadyVisited)));
         }
+        return futures;
+    }
 
+    private void collectCrawledWebsitesFromFutures(List<Future<CrawledWebsite>> futures) {
         for (Future<CrawledWebsite> future : futures) {
             try {
                 CrawledWebsite crawledWebsite = future.get();
@@ -47,77 +52,135 @@ public class WebCrawler {
                     crawledWebsites.add(crawledWebsite);
                 }
             } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-                Thread.currentThread().interrupt();
+                System.err.println("Future collection of CrawledWebsites failed: " + e.getMessage());
             }
         }
-        executorService.shutdown();
-
-        return crawledWebsites;
     }
 
-    // todo handle case where start link is already invalid
-    public CrawledWebsite crawlWebsite(WebsiteToCrawl website, List<String> domains, Set<String> alreadyVisited) {
+    public CrawledWebsite crawlWebsite(WebsiteToCrawl website, Set<String> alreadyVisited) {
+        resetExecutorServiceIfDown();
         alreadyVisited.add(website.getUrl());
-        String url = website.getUrl();
-        int depth = website.getDepth();
-        CrawledWebsite crawledWebsite = CrawledWebsite.from(website);
 
-
-        HTMLParserAdapter htmlParser = new HTMLParserAdapter();
-        if (!htmlParser.fetchHTMLFromURL(url, FETCH_TIMEOUT) || !htmlParser.hasDocument()) {
-            return null; // todo don't return null
+        HTMLParserAdapter htmlParser = fetchAndGetParser(website);
+        if (!htmlParser.hasDocument()) {
+            return new CrawledWebsite(website.getUrl(), true);
         }
+
+        CrawledWebsite crawledWebsite = CrawledWebsite.from(website);
         crawledWebsite.setHeadings(htmlParser.getHeadingsFromHTML());
         List<String> links = htmlParser.getLinksFromHTML();
-        List<String> linksToCrawl = getLinksToCrawl(domains, links);
 
+        Map<Future<CrawledWebsite>, String> futureToLinkMap = createWebsiteFutures(crawledWebsite, alreadyVisited, links);
+        collectLinkedWebsitesFromFutures(futureToLinkMap, crawledWebsite);
+        return crawledWebsite;
+    }
+
+    private HTMLParserAdapter fetchAndGetParser(WebsiteToCrawl website) {
+        HTMLParserAdapter htmlParser = new HTMLParserAdapter();
+        htmlParser.fetchHTMLFromURL(website.getUrl(), FETCH_TIMEOUT);
+        return htmlParser;
+    }
+
+    private @NotNull Map<Future<CrawledWebsite>, String> createWebsiteFutures(CrawledWebsite crawledWebsite, Set<String> alreadyVisited, List<String> links) {
         Map<Future<CrawledWebsite>, String> futureToLinkMap = new ConcurrentHashMap<>();
+        List<String> linksToCrawl = getLinksToCrawlFromDomains(links);
         for (String link : links) {
-            CrawledWebsite linkedWebsite = new CrawledWebsite(link, depth - 1, website.getSource(), website.getTarget());
-            if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && depth > 1) {
-                Future<CrawledWebsite> future = executorService.submit(() -> crawlWebsite(linkedWebsite, domains, alreadyVisited));
+            CrawledWebsite linkedWebsite = new CrawledWebsite(link, crawledWebsite.getDepth() - 1, crawledWebsite.getSource(), crawledWebsite.getTarget());
+            if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && crawledWebsite.getDepth() > 1) {
+                Future<CrawledWebsite> future = executorService.submit(() -> crawlWebsite(linkedWebsite, alreadyVisited));
                 futureToLinkMap.put(future, link);
             } else {
                 crawledWebsite.addLinkedWebsite(linkedWebsite);
             }
         }
-
-        for (Map.Entry<Future<CrawledWebsite>, String> entry : futureToLinkMap.entrySet()) {
-            try {
-                Future<CrawledWebsite> future = entry.getKey();
-                String link = entry.getValue();
-                CrawledWebsite linkedWebsite = future.get();
-                if (linkedWebsite != null) {
-                    crawledWebsite.addLinkedWebsite(linkedWebsite);
-                } else {
-                    crawledWebsite.addBrokenLink(link);
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-                Thread.currentThread().interrupt(); // Set interrupt flag
-            }
-        }
-
-
-        return crawledWebsite;
+        return futureToLinkMap;
     }
 
-    public List<String> getLinksToCrawl(List<String> domains, List<String> links) {
-        Set<String> linksToCrawl = new LinkedHashSet<>();
-        if (domains != null && !domains.isEmpty()) {
-            for (String link : links) {
-                for (String domain : domains) {
-                    if (link.contains(domain)) {
-                        linksToCrawl.add(link);
-                        break;
-                    }
-                }
+    private static void collectLinkedWebsitesFromFutures(Map<Future<CrawledWebsite>, String> futureToLinkMap, CrawledWebsite crawledWebsite) {
+        for (Map.Entry<Future<CrawledWebsite>, String> entry : futureToLinkMap.entrySet()) {
+            try {
+                processFutureMapEntry(crawledWebsite, entry);
+            } catch (Exception e) {
+                System.err.println("Future collection of CrawledWebsites failed: " + e.getMessage());
             }
+        }
+    }
+
+    private static void processFutureMapEntry(CrawledWebsite crawledWebsite, Map.Entry<Future<CrawledWebsite>, String> entry) throws Exception {
+        Future<CrawledWebsite> future = entry.getKey();
+        String link = entry.getValue();
+        CrawledWebsite linkedWebsite = future.get();
+        if (linkedWebsite != null && !linkedWebsite.hasBrokenUrl()) {
+            crawledWebsite.addLinkedWebsite(linkedWebsite);
         } else {
-            linksToCrawl.addAll(links);
+            crawledWebsite.addBrokenLink(link);
+        }
+    }
+
+    public List<String> getLinksToCrawlFromDomains(List<String> links) {
+        Set<String> linksToCrawl;
+        if (domains == null || domains.isEmpty()) {
+            linksToCrawl = new LinkedHashSet<>(links);
+        } else {
+            linksToCrawl = getIntersectionOfLinks(links);
         }
         return new ArrayList<>(linksToCrawl);
+    }
+
+    private Set<String> getIntersectionOfLinks(List<String> links) {
+        Set<String> intersection = new LinkedHashSet<>();
+        for (String link : links) {
+            for (String domain : domains) {
+                if (link.contains(domain)) {
+                    intersection.add(link);
+                    break;
+                }
+            }
+        }
+        return intersection;
+    }
+
+    public void reset() {
+        shutdownExecutorService();
+        resetExecutorServiceIfDown();
+        crawledWebsites = new ArrayList<>();
+    }
+
+    private void shutdownExecutorService() {
+        try {
+            ensureShutdown();
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            System.err.println("ExecutorService did not terminate: " + e.getMessage());
+        }
+    }
+
+    private void ensureShutdown() throws InterruptedException {
+        executorService.shutdown();
+        if (!executorService.awaitTermination(EXECUTOR_TIMEOUT, TimeUnit.MILLISECONDS)) {
+            executorService.shutdownNow();
+            if (!executorService.awaitTermination(EXECUTOR_TIMEOUT, TimeUnit.MILLISECONDS)) {
+                System.err.println("ExecutorService did not terminate");
+            }
+        }
+    }
+
+    private void resetExecutorServiceIfDown() {
+        if (executorService.isShutdown() || executorService.isTerminated()) {
+            executorService = Executors.newCachedThreadPool();
+        }
+    }
+
+    public List<String> getDomains() {
+        return domains;
+    }
+
+    public void setDomains(List<String> domains) {
+        this.domains = domains;
+    }
+
+    public List<CrawledWebsite> getCrawledWebsites() {
+        return crawledWebsites;
     }
 
 }

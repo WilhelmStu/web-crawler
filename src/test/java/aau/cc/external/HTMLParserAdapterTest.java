@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class HTMLParserAdapterTest {
 
-    private static final String HTML = "<html>" +
+    public static final String HTML = "<html>" +
             "<head><title>Test Document</title></head>" +
             "<body>" +
             "<h1>Heading 1</h1>" +

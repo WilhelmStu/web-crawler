@@ -19,7 +19,6 @@ public class MarkdownExporter {
 
     public void generateMarkdownFile(String filePath, List<CrawledWebsite> websites) {
         File mdFile = getMarkdownFile(filePath);
-        System.out.println(mdFile.getAbsolutePath());
         try {
             for (CrawledWebsite website : websites) {
                 generateContentAndExportToFile(mdFile, website);
@@ -31,10 +30,10 @@ public class MarkdownExporter {
 
     public void deleteMarkdownFileIfExists(String filePath) {
         File mdFile = getMarkdownFile(filePath);
-        if (mdFile.exists()){
-            if(mdFile.delete()){
+        if (mdFile.exists()) {
+            if (mdFile.delete()) {
                 System.out.println("Deleted old file: " + mdFile.getAbsolutePath());
-            }else{
+            } else {
                 System.err.println("Failed to delete file: " + mdFile.getAbsolutePath());
             }
         }
@@ -54,11 +53,14 @@ public class MarkdownExporter {
         writeToFile(writer, getFormattedHeaderContent(website, skipTranslation));
 
         writer.write("\n## Overview of: " + website.getUrl() + "\n\n");
-        System.out.println("Writing website: "+ website.getUrl() +" to: " + file.getAbsolutePath());
-        writeToFile(writer, getFormattedMainContent(website, 0));
-        writer.write("\n___\n");
-
-        writeToFile(writer, getFormattedSubWebsiteContent(website, website.getDepth()));
+        System.out.println("Writing website: " + website.getUrl() + " to: " + file.getAbsolutePath());
+        if (!website.hasBrokenUrl()) {
+            writeToFile(writer, getFormattedMainContent(website, 0));
+            writer.write("\n___\n");
+            writeToFile(writer, getFormattedSubWebsiteContent(website, website.getDepth()));
+        } else {
+            writer.write("\n## Error while reaching/parsing Website!\n");
+        }
         writer.write("\n___\n### End of: " + website.getUrl() + "\n___\n\n\n");
         writer.close();
     }
@@ -105,7 +107,7 @@ public class MarkdownExporter {
 
     public List<String> getFormattedSubWebsiteContent(CrawledWebsite parentWebsite, int depth) {
         List<String> formattedContent = new ArrayList<>();
-        formattedContent.add("<br>\n\n___");
+        formattedContent.add("<br>\n___");
         formattedContent.add("\n### Children of: " + parentWebsite.getUrl());
         getSubWebsiteContentRecursively(parentWebsite, formattedContent, depth);
         return formattedContent;
@@ -125,7 +127,6 @@ public class MarkdownExporter {
             formattedContent.add("___");
             formattedContent.add("### Link to: " + subWebsite.getUrl());
             formattedContent.addAll(getFormattedMainContent(subWebsite, 2));
-            formattedContent.add("\n");
             formattedContent.addAll(getFormattedBrokenLinks(parentWebsite.getBrokenLinks()));
         }
         for (CrawledWebsite subWebsite : parentWebsite.getLinkedWebsites()) {

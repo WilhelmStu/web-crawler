@@ -29,8 +29,8 @@ public class Main {
             websitesToCrawls.add(website);
         }
 
-        WebCrawler webCrawler = new WebCrawler();
-        List<CrawledWebsite> crawledWebsites = webCrawler.crawlWebsites(websitesToCrawls, domains);
+        WebCrawler webCrawler = new WebCrawler(domains);
+        List<CrawledWebsite> crawledWebsites = webCrawler.crawlWebsites(websitesToCrawls);
 
         System.out.println("Crawling done. Writing to out.md");
         MarkdownExporter exporter = new MarkdownExporter(targetLanguage == null);

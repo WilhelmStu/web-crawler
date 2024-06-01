@@ -10,21 +10,11 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
+import static aau.cc.external.HTMLParserAdapterTest.HTML;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class WebCrawlerTest {
 
-    private static final String HTML = "<html>" +
-            "<head><title>Test Document</title></head>" +
-            "<body>" +
-            "<h1>Heading 1</h1>" +
-            "<p>Paragraph</p>" +
-            "<h2>Heading 2</h2>" +
-            "<a href=\"https://example.com\">Link 1</a>" +
-            "<a href=\"https://example.org\">Link 2</a>" +
-            "<h4>Heading 3</h4>" +
-            "</body>" +
-            "</html>";
     private static final List<String> DOMAINS = List.of("example.org");
     private static final String URL = "https://google.at";
     private static final String EXPECTED_URL1 = "https://example.com";
@@ -39,7 +29,7 @@ public class WebCrawlerTest {
     public void setUp() {
         htmlParser = new HTMLParserAdapter();
         htmlParser.setDocumentFromString(HTML);
-        webCrawler = new WebCrawler();
+        webCrawler = new WebCrawler(DOMAINS);
         website = new WebsiteToCrawl(URL, 2,Language.GERMAN, Language.ENGLISH);
         website.setSource(Language.GERMAN);
         website.setTarget(Language.ENGLISH);
@@ -59,69 +49,83 @@ public class WebCrawlerTest {
     @Test
     public void testSizeOfWebsitesToCrawl() {
         List<String> list = htmlParser.getLinksFromHTML();
-        List<String> result = webCrawler.getLinksToCrawl(DOMAINS, list);
+        List<String> result = webCrawler.getLinksToCrawlFromDomains(list);
         assertEquals(1, result.size());
     }
 
     @Test
     public void testStringsOfWebsitesToCrawl() {
         List<String> list = htmlParser.getLinksFromHTML();
-        List<String> result = webCrawler.getLinksToCrawl(DOMAINS, list);
+        List<String> result = webCrawler.getLinksToCrawlFromDomains(list);
         assertEquals(EXPECTED_URL2, result.get(0));
     }
 
     @Test
-    public void testSizeOfWebsitesToCrawlNullDomains() {
+    public void testSizeOfWebsitesToCrawlEmptyDomains() {
         List<String> list = htmlParser.getLinksFromHTML();
-        List<String> result = webCrawler.getLinksToCrawl(null, list);
+        webCrawler = new WebCrawler();
+        List<String> result = webCrawler.getLinksToCrawlFromDomains(list);
         assertEquals(2, result.size());
     }
 
     @Test
-    public void testStringsOfWebsitesToCrawlNullDomains() {
+    public void testStringsOfWebsitesToCrawlEmptyDomains() {
         List<String> list = htmlParser.getLinksFromHTML();
-        List<String> result = webCrawler.getLinksToCrawl(null, list);
+        webCrawler = new WebCrawler();
+        List<String> result = webCrawler.getLinksToCrawlFromDomains(list);
         assertLinks(result);
     }
 
     @Test
     public void testCrawlWebsiteBasic() {
-        website = webCrawler.crawlWebsite(website, DOMAINS, alreadyVisited);
+        website = webCrawler.crawlWebsite(website, alreadyVisited);
         assertNotNull(website);
     }
 
-    @Test
-    public void testCrawlWebsiteNullDomains() {
-        website = webCrawler.crawlWebsite(website, null, alreadyVisited);
-        assertNotNull(website);
-    }
 
     @Test
     public void testCrawlWebsiteEmptyDomains() {
-        website = webCrawler.crawlWebsite(website, Collections.emptyList(), alreadyVisited);
+        webCrawler = new WebCrawler();
+        website = webCrawler.crawlWebsite(website, alreadyVisited);
         assertNotNull(website);
     }
 
     @Test
     public void testCrawlWebsiteError() {
         website.setUrl("Error.net");
-        website = webCrawler.crawlWebsite(website, DOMAINS, alreadyVisited);
-        assertNull(website);
+        CrawledWebsite crawledWebsite = webCrawler.crawlWebsite(website, alreadyVisited);
+        assertTrue(crawledWebsite.hasBrokenUrl());
+    }
+
+    @Test
+    public void testCrawlWebsiteErrorUrl() {
+        website.setUrl("Error.net");
+        CrawledWebsite crawledWebsite = webCrawler.crawlWebsite(website, alreadyVisited);
+        assertEquals("Error.net", crawledWebsite.getUrl());
     }
 
     @Test
     public void testCrawlWebsitesSize() {
         setUpMultipleWebsites();
-        List<CrawledWebsite> websites1 = webCrawler.crawlWebsites(websites, DOMAINS);
+        List<CrawledWebsite> websites1 = webCrawler.crawlWebsites(websites);
         assertEquals(2, websites1.size());
     }
 
     @Test
     public void testCrawlWebsitesContent() {
         setUpMultipleWebsites();
-        List<CrawledWebsite> websites1 = webCrawler.crawlWebsites(websites, DOMAINS);
+        List<CrawledWebsite> websites1 = webCrawler.crawlWebsites(websites);
         assertEquals(URL, websites1.get(0).getUrl());
         assertEquals(URL, websites1.get(1).getUrl());
+    }
+
+    @Test
+    public void testResetWebCrawler() {
+        setUpMultipleWebsites();
+        webCrawler.crawlWebsites(websites);
+        assertEquals(2, webCrawler.getCrawledWebsites().size());
+        webCrawler.reset();
+        assertTrue(webCrawler.getCrawledWebsites().isEmpty());
     }
 
     private void assertLinks(List<String> result) {
