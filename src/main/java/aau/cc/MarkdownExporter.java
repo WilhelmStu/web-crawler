@@ -3,6 +3,7 @@ package aau.cc;
 import aau.cc.model.CrawledWebsite;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,29 +17,49 @@ public class MarkdownExporter {
         this.skipTranslation = skipTranslations;
     }
 
-    public void generateMarkdownFile(String filePath, CrawledWebsite website) {
-        if (!filePath.endsWith(".md")) {
-            filePath += ".md";
-        }
-
+    public void generateMarkdownFile(String filePath, List<CrawledWebsite> websites) {
+        File mdFile = getMarkdownFile(filePath);
+        System.out.println(mdFile.getAbsolutePath());
         try {
-            generateContentAndExportToFile(filePath, website);
+            for (CrawledWebsite website : websites) {
+                generateContentAndExportToFile(mdFile, website);
+            }
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
     }
 
-    private void generateContentAndExportToFile(String filePath, CrawledWebsite website) throws IOException {
+    public void deleteMarkdownFileIfExists(String filePath) {
+        File mdFile = getMarkdownFile(filePath);
+        if (mdFile.exists()){
+            if(mdFile.delete()){
+                System.out.println("Deleted: " + mdFile.getAbsolutePath());
+            }else{
+                System.err.println("Failed to delete file: " + mdFile.getAbsolutePath());
+            }
+        }
+    }
+
+    private File getMarkdownFile(String filePath) {
+        if (!filePath.endsWith(".md")) {
+            filePath += ".md";
+        }
+        return new File(filePath);
+    }
+
+    private void generateContentAndExportToFile(File file, CrawledWebsite website) throws IOException {
         BufferedWriter writer;
-        writer = new BufferedWriter(new FileWriter(filePath));
+        writer = new BufferedWriter(new FileWriter(file, true));
 
         writeToFile(writer, getFormattedHeaderContent(website, skipTranslation));
 
-        writer.write("\n## Overview:\n");
+        writer.write("\n## Overview of: " + website.getUrl() + "\n\n");
+        System.out.println("Writing to: " + file.getAbsolutePath());
         writeToFile(writer, getFormattedMainContent(website, 0));
         writer.write("\n___\n");
 
         writeToFile(writer, getFormattedSubWebsiteContent(website, website.getDepth()));
+        writer.write("\n___\n### End of: " + website.getUrl() + "\n___\n\n\n");
         writer.close();
     }
 

@@ -106,7 +106,8 @@ public class WebCrawler {
                 }
             }
 
-        } catch (Exception e) {
+        } catch (Exception e) { // todo handle case where start link is already invalid
+            System.err.println(e.getMessage());
             // error fetching site -> it will be handled as broken link
             return null;
         }

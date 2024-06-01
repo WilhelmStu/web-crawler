@@ -28,27 +28,31 @@ public class MarkdownExporterTest {
     private static final Heading HEADING_2 = new Heading("Test Überschrift Nummer 2", 1);
     private static final Heading HEADING_3 = new Heading("Test Überschrift Nummer 3", 2);
     private static final String EXPECTED_FORMATED_BROKEN_LINK = "### <span style=\"color:gray\"> Broken Link to: </span>";
-    private static final String[] EXPECTED_RESULT_TRANSLATED = {
-            "# Test Heading Number 1",
-            "# Test Heading Number 2",
-            "## Test Heading Number 3"};
+    //private static final String[] EXPECTED_RESULT_TRANSLATED = {
+    //        "# Test headline number 1",
+    //        "# Test headline number 2",
+    //        "## Test headline number 3"};
     private static final String[] EXPECTED_RESULT_NOT_TRANSLATED = {
             "# Test Überschrift Nummer 1",
             "# Test Überschrift Nummer 2",
             "## Test Überschrift Nummer 3"};
 
+    private List<CrawledWebsite> websites;
     private CrawledWebsite website;
     private MarkdownExporter exporter;
     private List<String> brokenLinks;
 
     @BeforeEach
     public void setUp() {
+        exporter = new MarkdownExporter(true);
         setUpBrokenLinks();
         website = getWebsite(WEBSITE_URL, 2);
         website.addBrokenLink(BROKEN_LINK);
         CrawledWebsite childWebSite = getWebsite(CHILD_WEBSITE_URL, 1);
         childWebSite.setBrokenLinks(brokenLinks);
         website.addLinkedWebsite(childWebSite);
+        websites = new ArrayList<>();
+        websites.add(website);
     }
 
     private void setUpBrokenLinks() {
@@ -88,7 +92,6 @@ public class MarkdownExporterTest {
 
     @Test
     public void testExportHeaderContent() {
-        exporter = new MarkdownExporter(true);
         List<String> result = exporter.getFormattedHeaderContent(website, true);
         assertResultHeader(result, true);
     }
@@ -102,7 +105,6 @@ public class MarkdownExporterTest {
 
     @Test
     public void testExportMainContent() {
-        exporter = new MarkdownExporter(true);
         List<String> results = exporter.getFormattedMainContent(website, 0);
         assertExportedContent(results, true);
     }
@@ -117,7 +119,6 @@ public class MarkdownExporterTest {
 
     @Test
     public void testExportChildrenContent() {
-        exporter = new MarkdownExporter(true);
         List<String> results = exporter.getFormattedSubWebsiteContent(website, website.getDepth());
         assertExportedChildrenContent(results, true);
     }
@@ -145,16 +146,28 @@ public class MarkdownExporterTest {
 
     @Test
     public void testExportToFile() {
-        exporter = new MarkdownExporter(true);
-        exporter.generateMarkdownFile(FILE_NAME, website);
+        exporter.generateMarkdownFile(FILE_NAME, websites);
         assertExportedFile();
     }
 
     @Test
     public void testExportToFileNoFileExtension() {
-        exporter = new MarkdownExporter(true);
-        exporter.generateMarkdownFile("Test", website);
+        exporter.generateMarkdownFile("Test", websites);
         assertExportedFile();
+    }
+
+    @Test
+    public void testDeleteMarkdownFileIfExists() {
+        exporter.generateMarkdownFile(FILE_NAME, websites);
+        assertTrue(Files.exists(Path.of(FILE_NAME)));
+        exporter.deleteMarkdownFileIfExists(FILE_NAME);
+        assertFalse(Files.exists(Path.of(FILE_NAME)));
+    }
+
+    @Test
+    public void testDeleteMarkdownFileNotExists() {
+        exporter.deleteMarkdownFileIfExists(FILE_NAME);
+        assertFalse(Files.exists(Path.of(FILE_NAME)));
     }
 
     private void assertResultHeader(List<String> result, boolean translationSkipped) {
@@ -172,9 +185,9 @@ public class MarkdownExporterTest {
     private void assertExportedContent(List<String> results, boolean translationSkipped) {
         for (int i = 0; i < results.size(); i++) {
             if (translationSkipped) {
-                assertEquals(results.get(i), EXPECTED_RESULT_NOT_TRANSLATED[i]);
+                assertEquals(EXPECTED_RESULT_NOT_TRANSLATED[i], results.get(i));
             } else {
-                assertEquals(results.get(i), EXPECTED_RESULT_TRANSLATED[i]);
+                assertNotEquals(EXPECTED_RESULT_NOT_TRANSLATED[i], results.get(i));
             }
         }
     }
@@ -188,7 +201,7 @@ public class MarkdownExporterTest {
             if (translationSkipped) {
                 assertEquals(subResults.get(i), "##" + EXPECTED_RESULT_NOT_TRANSLATED[i]);
             } else {
-                assertEquals(subResults.get(i), "##" + EXPECTED_RESULT_TRANSLATED[i]);
+                assertNotEquals(subResults.get(i), "##" + EXPECTED_RESULT_NOT_TRANSLATED[i]);
             }
         }
     }

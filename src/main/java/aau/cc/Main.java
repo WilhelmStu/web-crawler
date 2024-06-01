@@ -15,6 +15,7 @@ public class Main {
     private static final List<String> domains = new ArrayList<>();
     private static Language targetLanguage;
     private static final Scanner scanner = new Scanner(System.in);
+    private static final String FILE_NAME = "out.md";
 
 
     public static void main(String[] args) {
@@ -31,7 +32,9 @@ public class Main {
 
         System.out.println("Crawling done. Writing to out.md..");
         MarkdownExporter exporter = new MarkdownExporter(targetLanguage == null);
-        exporter.generateMarkdownFile("out.md", crawledWebsites.get(0));
+
+        exporter.deleteMarkdownFileIfExists(FILE_NAME);
+        exporter.generateMarkdownFile(FILE_NAME, crawledWebsites);
     }
 
     // todo: move to extra class for user input (SRP) (same for others below)
@@ -66,7 +69,7 @@ public class Main {
         do {
             System.out.print("Enter the target language code (e.g., en, de, fr, it, es, or none): ");
             String inputLanguage = scanner.nextLine().trim().toLowerCase();
-            if (inputLanguage.equals("none")) {
+            if (inputLanguage.equals("none") || inputLanguage.isEmpty()) {
                 targetLanguage = null;
                 break;
             }
@@ -77,7 +80,6 @@ public class Main {
     protected static void askUserForDomainsToBeCrawled(){
         System.out.println("Enter the domain(s) to be crawled (leave empty if all)\ne.g. website.at, sub.website.at, website.de:");
         String domain;
-        //scanner.reset();
         while(!(domain = scanner.nextLine()).isEmpty()){
             domains.add(domain);
         }
