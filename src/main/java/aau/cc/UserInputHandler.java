@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Scanner;
 
 public class UserInputHandler {
-    private static final Scanner scanner = new Scanner(System.in);
+    private static Scanner scanner = new Scanner(System.in);
 
     public static UserInput askUserForInput() {
         UserInput userInput = new UserInput();
@@ -28,15 +28,18 @@ public class UserInputHandler {
             urls.add(url);
         }
         if (urls.isEmpty()) {
-            System.out.println("Error. At least 1 URL is required!");
-            askUserForURLs();
+            System.out.println("At least 1 URL is required!");
+            return askUserForURLs();
         }
         return urls;
     }
 
     public static int askUserForCrawlingDepth() {
         System.out.print("Enter the depth of websites to crawl: ");
-        int depth = scanner.nextInt(); // todo catch exception
+        int depth;
+        while (!((depth = scanner.nextInt()) > 1)){
+            System.out.println("Depth must be a positive integer!");
+        } // todo catch exception
         scanner.nextLine();
         return depth;
     }
@@ -63,5 +66,9 @@ public class UserInputHandler {
             domains.add(domain);
         }
         return domains;
+    }
+
+    protected static void setScanner(Scanner scanner) {
+        UserInputHandler.scanner = scanner;
     }
 }
