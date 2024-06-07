@@ -54,7 +54,7 @@ public class MarkdownExporter {
         writeToFile(writer, getFormattedHeaderContent(website));
 
         writer.write("\n## Overview of: " + website.getUrl() + "\n\n");
-        System.out.println("Writing website: " + website.getUrl() + " to: " + file.getAbsolutePath());
+        System.out.println("Writing result of: " + website.getUrl() + " to: " + file.getAbsolutePath());
         if (!website.hasBrokenUrl()) {
             writeToFile(writer, getFormattedMainContent(website, 0));
             writer.write("\n___\n");
