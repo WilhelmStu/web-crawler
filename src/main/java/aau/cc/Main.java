@@ -20,7 +20,7 @@ public class Main {
         List<WebsiteToCrawl> websitesToCrawl = prepareWebsitesToCrawl();
         List<CrawledWebsite> crawledWebsites = crawlWebsitesTimed(websitesToCrawl);
 
-        writeResultsToFile(crawledWebsites);
+        writeResultsToFile(crawledWebsites, FILE_NAME);
     }
 
     protected static List<WebsiteToCrawl> prepareWebsitesToCrawl() {
@@ -51,10 +51,14 @@ public class Main {
         return crawledWebsites;
     }
 
-    protected static void writeResultsToFile(List<CrawledWebsite> crawledWebsites) {
-        System.out.println("\nWriting results to " + FILE_NAME);
+    protected static void writeResultsToFile(List<CrawledWebsite> crawledWebsites, String filename) {
+        System.out.println("\nWriting results to " + filename);
         MarkdownExporter exporter = new MarkdownExporter(userInput.isSkipTranslation());
-        exporter.deleteMarkdownFileIfExists(FILE_NAME);
-        exporter.generateMarkdownFile(FILE_NAME, crawledWebsites);
+        exporter.deleteMarkdownFileIfExists(filename);
+        exporter.generateMarkdownFile(filename, crawledWebsites);
+    }
+
+    protected static void setUserInput(UserInput userInput) {
+        Main.userInput = userInput;
     }
 }
