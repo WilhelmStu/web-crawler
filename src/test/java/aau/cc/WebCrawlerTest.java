@@ -30,7 +30,7 @@ public class WebCrawlerTest {
         htmlParser = new HTMLParserAdapter();
         htmlParser.setDocumentFromString(HTML);
         webCrawler = new WebCrawler(DOMAINS);
-        website = new WebsiteToCrawl(URL, 2,Language.GERMAN, Language.ENGLISH);
+        website = new WebsiteToCrawl(URL, 1,Language.GERMAN, Language.ENGLISH);
         website.setSource(Language.GERMAN);
         website.setTarget(Language.ENGLISH);
     }
@@ -125,7 +125,7 @@ public class WebCrawlerTest {
         webCrawler.crawlWebsites(websites);
         assertEquals(2, webCrawler.getCrawledWebsites().size());
         webCrawler.reset();
-        assertTrue(webCrawler.getCrawledWebsites().isEmpty());
+        assertTrue(webCrawler.getCrawledWebsites().isEmpty() );
     }
 
     private void assertLinks(List<String> result) {

@@ -61,17 +61,6 @@ public class CrawledWebsite extends WebsiteToCrawl {
         this.brokenLinks.add(link);
     }
 
-    public List<String> getHeadingsTextsAsList() {
-        if (headings == null) {
-            return Collections.emptyList();
-        }
-        List<String> headingsTexts = new ArrayList<>();
-        for (Heading heading : headings) {
-            headingsTexts.add(heading.getText());
-        }
-        return headingsTexts;
-    }
-
     public int[] getHeadingsDepths() {
         if (headings == null) {
             return new int[0];

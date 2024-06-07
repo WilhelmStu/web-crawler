@@ -1,5 +1,8 @@
 package aau.cc.model;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 public class Heading {
@@ -14,6 +17,17 @@ public class Heading {
     public Heading(String text) {
         this.text = text;
         this.depth = 1;
+    }
+
+    public static List<String> getHeadingsTextsAsList(List<Heading> headings) {
+        if (headings == null) {
+            return Collections.emptyList();
+        }
+        List<String> headingsTexts = new ArrayList<>();
+        for (Heading heading : headings) {
+            headingsTexts.add(heading.getText());
+        }
+        return headingsTexts;
     }
 
     public String getText() {

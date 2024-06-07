@@ -48,14 +48,6 @@ public class CrawledWebsiteTest {
     }
 
     @Test
-    public void testGetHeadingsTextsAsList() {
-        website.addHeading(HEADING_1);
-        List<String> result =  website.getHeadingsTextsAsList();
-        assertEquals(1, result.size());
-        assertEquals(HEADING_1.getText(), result.get(0));
-    }
-
-    @Test
     public void testGetHeadingsDepths() {
         website.addHeading(HEADING_1);
         int[] result = website.getHeadingsDepths();
@@ -83,7 +75,7 @@ public class CrawledWebsiteTest {
     @Test
     void testBrokenWebsiteCollectionsEmpty() {
         website = new CrawledWebsite(WEBSITE_URL, true);
-        assertTrue(website.getHeadingsTextsAsList().isEmpty());
+        assertTrue(Heading.getHeadingsTextsAsList(website.getHeadings()).isEmpty());
         assertEquals(0, website.getHeadingsDepths().length);
     }
 

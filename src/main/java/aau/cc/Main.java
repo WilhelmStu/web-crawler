@@ -8,6 +8,7 @@ import aau.cc.model.WebsiteToCrawl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
     private static final List<String> urls = new ArrayList<>();
@@ -21,19 +22,22 @@ public class Main {
     public static void main(String[] args) {
         askUserForInput();
         List<WebsiteToCrawl> websitesToCrawls = new ArrayList<>();
-        for (String url : urls) {
+        for (String url : urls) { // todo clean up
             WebsiteToCrawl website = new WebsiteToCrawl(url, depth);
-            if(targetLanguage != null) {
+            if (targetLanguage != null) {
                 website.setTarget(targetLanguage);
             }
             websitesToCrawls.add(website);
         }
 
-        WebCrawler webCrawler = new WebCrawler(domains);
+        long startTime = System.nanoTime();
+        WebCrawler webCrawler = new WebCrawler(domains, targetLanguage == null);
         List<CrawledWebsite> crawledWebsites = webCrawler.crawlWebsites(websitesToCrawls);
+        long endTime = System.nanoTime();
+        long elapsedTime = TimeUnit.NANOSECONDS.toMillis(endTime - startTime);
 
-        System.out.println("Crawling done. Writing to out.md");
-        MarkdownExporter exporter = new MarkdownExporter(targetLanguage == null);
+        System.out.println("Crawling done, it took " + elapsedTime + "ms. Writing to out.md");
+        MarkdownExporter exporter = new MarkdownExporter(webCrawler.isSkipTranslations());
 
         exporter.deleteMarkdownFileIfExists(FILE_NAME);
         exporter.generateMarkdownFile(FILE_NAME, crawledWebsites);
@@ -49,10 +53,10 @@ public class Main {
         System.out.println("Got user input. Proceeding to crawl..");
     }
 
-    protected static void askUserForURLs(){
+    protected static void askUserForURLs() { //todo handle InputMismatchException
         System.out.println("Enter multiple URLs to be crawled (empty line to proceed):");
         String url;
-        while(!(url = scanner.nextLine()).isEmpty()){
+        while (!(url = scanner.nextLine()).isEmpty()) {
             urls.add(url);
         }
         if (urls.isEmpty()) {
@@ -61,13 +65,13 @@ public class Main {
         }
     }
 
-    protected static void askUserForCrawlingDepth(){
+    protected static void askUserForCrawlingDepth() {
         System.out.print("Enter the depth of websites to crawl: ");
         depth = scanner.nextInt(); // todo catch exception
         scanner.nextLine();
     }
 
-    protected static void askUserForTargetLanguage(){
+    protected static void askUserForTargetLanguage() {
         do {
             System.out.print("Enter the target language code (e.g., en, de, fr, it, es, or none): ");
             String inputLanguage = scanner.nextLine().trim().toLowerCase();
@@ -79,10 +83,10 @@ public class Main {
         } while (targetLanguage == null);
     }
 
-    protected static void askUserForDomainsToBeCrawled(){
+    protected static void askUserForDomainsToBeCrawled() {
         System.out.println("Enter the domain(s) to be crawled (leave empty if all)\ne.g. website.at, sub.website.at, website.de:");
         String domain;
-        while(!(domain = scanner.nextLine()).isEmpty()){
+        while (!(domain = scanner.nextLine()).isEmpty()) {
             domains.add(domain);
         }
     }

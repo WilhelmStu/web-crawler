@@ -2,6 +2,8 @@ package aau.cc;
 
 import aau.cc.external.HTMLParserAdapter;
 import aau.cc.model.CrawledWebsite;
+import aau.cc.model.Heading;
+import aau.cc.model.Language;
 import aau.cc.model.WebsiteToCrawl;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,16 +16,27 @@ public class WebCrawler {
     private ExecutorService executorService;
     private List<String> domains;
     private List<CrawledWebsite> crawledWebsites;
+    private boolean skipTranslations;
 
-    public WebCrawler(List<String> domains) {
+    public WebCrawler(List<String> domains, boolean skipTranslations) {
         this.domains = domains;
-        executorService = Executors.newCachedThreadPool();
+        this.skipTranslations = skipTranslations;
+        executorService = Executors.newCachedThreadPool(); // cachedThreadPool has the best performance
         crawledWebsites = new ArrayList<>();
     }
 
-    public WebCrawler() {
-        this(Collections.emptyList());
+    public WebCrawler(List<String> domains) {
+        this(domains, false);
     }
+
+    public WebCrawler(boolean skipTranslations) {
+        this(Collections.emptyList(),skipTranslations);
+    }
+
+    public WebCrawler() {
+        this(Collections.emptyList(),false);
+    }
+
 
     public List<CrawledWebsite> crawlWebsites(List<WebsiteToCrawl> websites) {
         resetExecutorServiceIfDown();
@@ -67,12 +80,30 @@ public class WebCrawler {
         }
 
         CrawledWebsite crawledWebsite = CrawledWebsite.from(website);
-        crawledWebsite.setHeadings(htmlParser.getHeadingsFromHTML());
+        crawledWebsite.setHeadings(getTranslatedHeadings(htmlParser, crawledWebsite.getTarget(), crawledWebsite.getSource()));
         List<String> links = htmlParser.getLinksFromHTML();
 
         Map<Future<CrawledWebsite>, String> futureToLinkMap = createWebsiteFutures(crawledWebsite, alreadyVisited, links);
         collectLinkedWebsitesFromFutures(futureToLinkMap, crawledWebsite);
         return crawledWebsite;
+    }
+
+    private List<Heading> getTranslatedHeadings(HTMLParserAdapter htmlParser, Language target, Language source){
+        List<Heading> headings = htmlParser.getHeadingsFromHTML();
+        if (!skipTranslations) {
+            translateHeadings(headings, target, source);
+        }
+        return headings;
+    }
+
+    private void translateHeadings(List<Heading> headings, Language target, Language source){
+        List<String> headingsToTranslate = Heading.getHeadingsTextsAsList(headings);
+        Translator translator = new Translator(target, source);
+        List<String> translatedHeadings = translator.getMultipleTranslations(headingsToTranslate);
+        for (int i = 0; i < headings.size(); i++) {
+            Heading heading = headings.get(i);
+            heading.setText(translatedHeadings.get(i));
+        }
     }
 
     private HTMLParserAdapter fetchAndGetParser(WebsiteToCrawl website) {
@@ -183,4 +214,11 @@ public class WebCrawler {
         return crawledWebsites;
     }
 
+    public boolean isSkipTranslations() {
+        return skipTranslations;
+    }
+
+    public void setSkipTranslations(boolean skipTranslations) {
+        this.skipTranslations = skipTranslations;
+    }
 }

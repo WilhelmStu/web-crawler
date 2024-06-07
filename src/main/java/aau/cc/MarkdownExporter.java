@@ -1,6 +1,7 @@
 package aau.cc;
 
 import aau.cc.model.CrawledWebsite;
+import aau.cc.model.Heading;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -11,10 +12,10 @@ import java.util.List;
 
 public class MarkdownExporter {
 
-    private boolean skipTranslation;
+    private boolean translationSkipped;
 
     public MarkdownExporter(boolean skipTranslations) {
-        this.skipTranslation = skipTranslations;
+        this.translationSkipped = skipTranslations;
     }
 
     public void generateMarkdownFile(String filePath, List<CrawledWebsite> websites) {
@@ -50,7 +51,7 @@ public class MarkdownExporter {
         BufferedWriter writer;
         writer = new BufferedWriter(new FileWriter(file, true));
 
-        writeToFile(writer, getFormattedHeaderContent(website, skipTranslation));
+        writeToFile(writer, getFormattedHeaderContent(website));
 
         writer.write("\n## Overview of: " + website.getUrl() + "\n\n");
         System.out.println("Writing website: " + website.getUrl() + " to: " + file.getAbsolutePath());
@@ -65,27 +66,22 @@ public class MarkdownExporter {
         writer.close();
     }
 
-    public List<String> getFormattedHeaderContent(CrawledWebsite website, boolean skipTranslation) {
+    public List<String> getFormattedHeaderContent(CrawledWebsite website) {
         List<String> header = new ArrayList<>();
         header.add("# Crawled Website: <a>" + website.getUrl() + "</a>");
         header.add("### Depth: " + website.getDepth());
         header.add("### Source language: " + website.getSource().getDisplayName());
         header.add("### Target language: " + website.getTarget().getDisplayName());
-        if (skipTranslation) {
+        if (translationSkipped) {
             header.add("### Translation has been skipped!");
         }
         return header;
     }
 
     public List<String> getFormattedMainContent(CrawledWebsite website, int depthOffset) {
-        List<String> headings = website.getHeadingsTextsAsList();
+        List<String> headings = Heading.getHeadingsTextsAsList(website.getHeadings());
         int[] depths = website.getHeadingsDepths();
-        if (skipTranslation) {
-            return getFormattedContent(headings, depths, depthOffset);
-        } else {
-            Translator translator = new Translator(website.getTarget(), website.getSource());
-            return getFormattedContent(translator.getMultipleTranslations(headings), depths, depthOffset);
-        }
+        return getFormattedContent(headings, depths, depthOffset);
     }
 
     public List<String> getFormattedBrokenLinks(List<String> brokenLinks) {
@@ -143,11 +139,11 @@ public class MarkdownExporter {
         }
     }
 
-    public boolean isSkipTranslation() {
-        return skipTranslation;
+    public boolean isTranslationSkipped() {
+        return translationSkipped;
     }
 
-    public void setSkipTranslation(boolean skipTranslation) {
-        this.skipTranslation = skipTranslation;
+    public void setTranslationSkipped(boolean translationSkipped) {
+        this.translationSkipped = translationSkipped;
     }
 }
