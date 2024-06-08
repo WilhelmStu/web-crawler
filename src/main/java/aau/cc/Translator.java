@@ -11,29 +11,24 @@ import java.util.List;
 public class Translator {
 
     private Language defaultTargetLanguage;
-    private Language defaultSourceLanguage;
-    private final HTTPClientAdapter httpClientAdapter;
 
-    public Translator(Language defaultTargetLanguage, Language defaultSourceLanguage) {
+    private HTTPClientAdapter httpClientAdapter;
+
+    public Translator(Language defaultTargetLanguage) {
         this.defaultTargetLanguage = defaultTargetLanguage;
-        this.defaultSourceLanguage = defaultSourceLanguage;
         this.httpClientAdapter = new HTTPClientAdapter();
     }
 
     public Translator() {
-        this(Language.GERMAN, Language.ENGLISH);
-    }
-
-    public Translator(Language defaultTargetLanguage) {
-        this(defaultTargetLanguage, Language.ENGLISH);
+        this(Language.ENGLISH);
     }
 
     public String translateSingleLine(String toTranslate, Language targetLanguage) {
         String body = TranslationAPI.getJsonBodyForTranslation(toTranslate);
         httpClientAdapter.prepareTranslationRequest(body, targetLanguage);
         String result = httpClientAdapter.doAPICall();
-        String translation = JSONParserAdapter.parseTranslationFromString(result).get(0);
-        if (!translation.isEmpty()) return translation;
+        List<String> translations = JSONParserAdapter.parseTranslationFromString(result);
+        if (!translations.isEmpty() && !translations.get(0).isEmpty()) return translations.get(0);
         else return "Error during translation request";
     }
 
@@ -68,19 +63,11 @@ public class Translator {
         return httpClientAdapter.doAPICall();
     }
 
-    public Language getDefaultTargetLanguage() {
-        return defaultTargetLanguage;
-    }
-
     public void setDefaultTargetLanguage(Language defaultTargetLanguage) {
         this.defaultTargetLanguage = defaultTargetLanguage;
     }
 
-    public Language getDefaultSourceLanguage() {
-        return defaultSourceLanguage;
-    }
-
-    public void setDefaultSourceLanguage(Language defaultSourceLanguage) {
-        this.defaultSourceLanguage = defaultSourceLanguage;
+    protected void setHttpClientAdapter(HTTPClientAdapter httpClientAdapter) {
+        this.httpClientAdapter = httpClientAdapter;
     }
 }

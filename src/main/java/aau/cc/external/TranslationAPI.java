@@ -6,7 +6,7 @@ import java.util.List;
 
 public class TranslationAPI {
     public static final String API_URL_GET_LANGUAGES = "https://microsoft-translator-text.p.rapidapi.com/languages?api-version=3.0&scope=translation";
-    private static final String API_URL_TRANSLATE = "https://microsoft-translator-text.p.rapidapi.com/translate?api-version=3.0&textType=plain&profanityAction=NoAction";
+    protected static final String API_URL_TRANSLATE = "https://microsoft-translator-text.p.rapidapi.com/translate?api-version=3.0&textType=plain&profanityAction=NoAction";
     public static final String API_HOST = "microsoft-translator-text.p.rapidapi.com";
     private static final String OBFUSCATED_API_KEY = "6829db37d45msha2b2d16c6ae926fw9p1326d0jsn0d545l9c433b15";
     public static final int API_MAX_BATCH_SIZE = 25;
@@ -27,7 +27,7 @@ public class TranslationAPI {
          * { "Text": "Second Line" },
          * {...}]
          */
-
+        if(toTranslate.isEmpty()) return "[]";
         StringBuilder body = new StringBuilder("[");
         for (String text : toTranslate) {
             body.append("{\"Text\": \"")
@@ -56,5 +56,9 @@ public class TranslationAPI {
         result.deleteCharAt(38);
         result.deleteCharAt(42);
         return result.toString();
+    }
+
+    protected static void setApiKey(String apiKey) {
+        API_KEY = apiKey;
     }
 }

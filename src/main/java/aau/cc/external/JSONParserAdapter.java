@@ -11,6 +11,17 @@ import java.util.Objects;
 public class JSONParserAdapter {
 
     public static List<String> parseTranslationFromString(String body) {
+        List<String> results = new ArrayList<>();
+        if (Objects.equals(body, "")) return results;
+        try {
+            parseBodyAndCollectTranslations(body, results);
+        }catch (Exception e){
+            System.err.println("Got malformed JSON: " + body);
+        }
+        return results;
+    }
+
+    private static void parseBodyAndCollectTranslations(String body, List<String> results) {
         /* structure of body to parse:
          * [ {
          *   "detectedLanguage": { "language": "de", "score": 0.99 },
@@ -23,9 +34,6 @@ public class JSONParserAdapter {
          * ]
          */
 
-        List<String> results = new ArrayList<>();
-        if (Objects.equals(body, "")) return results;
-
         JsonArray translations = JsonParser.parseString(body).getAsJsonArray();
         for (JsonElement element : translations) {
             results.add(element
@@ -37,6 +45,5 @@ public class JSONParserAdapter {
                     .get("text")
                     .getAsString());
         }
-        return results;
     }
 }

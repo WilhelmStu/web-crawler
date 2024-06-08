@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 
 
 public class HTTPClientAdapter {
-    private final OkHttpClient httpClient;
+    private OkHttpClient httpClient;
     private Request nextRequest;
 
     public HTTPClientAdapter() {
@@ -34,19 +34,19 @@ public class HTTPClientAdapter {
         }
     }
 
-    protected RequestBody buildRequestBody(String body) {
+    private RequestBody buildRequestBody(String body) {
         MediaType type = MediaType.parse("application/json");
         return RequestBody.create(body, type);
     }
 
-    protected Request buildTranslationRequest(RequestBody body, Language targetLanguage) {
+    private Request buildTranslationRequest(RequestBody body, Language targetLanguage) {
         return buildBaseRequest(TranslationAPI.getAPIUrlForTranslation(targetLanguage))
                 .post(body)
                 .addHeader("content-type", "application/json")
                 .build();
     }
 
-    protected Request.Builder buildBaseRequest(String url) {
+    private Request.Builder buildBaseRequest(String url) {
         return new Request.Builder()
                 .url(url)
                 .addHeader("Accept-Language", "en")
@@ -55,13 +55,24 @@ public class HTTPClientAdapter {
                 .addHeader("X-RapidAPI-Host", TranslationAPI.API_HOST);
     }
 
-    protected String checkResponseAndGetContent(Response response) throws IOException {
+    private String checkResponseAndGetContent(Response response) throws IOException {
         if (!response.isSuccessful()){
             assert response.body() != null;
-            System.out.println("Result is" + response.body().string());
             throw new IOException("Unexpected response code " + response);
         }
         assert response.body() != null;
         return response.body().source().readString(StandardCharsets.UTF_8);
+    }
+
+    protected void setHttpClient(OkHttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
+    protected void setNextRequest(Request nextRequest) {
+        this.nextRequest = nextRequest;
+    }
+
+    protected Request getNextRequest() {
+        return nextRequest;
     }
 }
