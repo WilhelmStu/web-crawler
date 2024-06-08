@@ -34,7 +34,7 @@ public class TranslatorTest {
     @Test
     public void testSingleTranslation() {
         for (String s : WORDS_TO_TRANSLATE) {
-            results.add(translator.getSingleTranslation(s));
+            results.add(translator.translateSingleLine(s));
         }
         assertResults1(results);
     }
@@ -42,40 +42,40 @@ public class TranslatorTest {
     @Test
     public void testSingleTranslationWithTargetLanguage() {
         for (int i = 0; i < WORDS_TO_TRANSLATE.length; i++) {
-            results.add(translator.getSingleTranslation(WORDS_TO_TRANSLATE[i], LANGUAGES[i]));
+            results.add(translator.translateSingleLine(WORDS_TO_TRANSLATE[i], LANGUAGES[i]));
         }
         assertResults2(results);
     }
 
     @Test
     public void testSingleTranslationWithSpecialCharacters() {
-        String result = translator.getSingleTranslation("(Hello, World!)");
+        String result = translator.translateSingleLine("(Hello, World!)");
         assertEquals("(Hallo, Welt!)", result);
     }
 
     @Test
     public void testSingleTranslationUpdatedTargetLanguage(){
         translator.setDefaultTargetLanguage(Language.ITALIAN);
-        String result = translator.getSingleTranslation("Hello World");
+        String result = translator.translateSingleLine("Hello World");
         assertEquals("Salve, mondo", result);
     }
 
     @Test
     public void testSingleTranslationSecondConstructor(){
         translator = new Translator(Language.ITALIAN);
-        String result = translator.getSingleTranslation("Hello World");
+        String result = translator.translateSingleLine("Hello World");
         assertEquals("Salve, mondo", result);
     }
 
     @Test
     public void testMultipleTranslations(){
-        results = translator.getMultipleTranslations(Arrays.stream(WORDS_TO_TRANSLATE).toList());
+        results = translator.translateMultipleLines(Arrays.stream(WORDS_TO_TRANSLATE).toList());
         assertResults1(results);
     }
 
     @Test
     public void testMultipleTranslationsWithTargetLanguage(){
-        List<String> result = translator.getMultipleTranslations(Arrays.stream(WORDS_TO_TRANSLATE).toList(), Language.GERMAN);
+        List<String> result = translator.translateMultipleLines(Arrays.stream(WORDS_TO_TRANSLATE).toList(), Language.GERMAN);
         assertResults1(result);
     }
 

@@ -28,10 +28,6 @@ public class MarkdownExporterTest {
     private static final Heading HEADING_2 = new Heading("Test Überschrift Nummer 2", 1);
     private static final Heading HEADING_3 = new Heading("Test Überschrift Nummer 3", 2);
     private static final String EXPECTED_FORMATED_BROKEN_LINK = "### <span style=\"color:gray\"> Broken Link to: </span>";
-    //private static final String[] EXPECTED_RESULT_TRANSLATED = {
-    //        "# Test headline number 1",
-    //        "# Test headline number 2",
-    //        "## Test headline number 3"};
     private static final String[] EXPECTED_RESULT_NOT_TRANSLATED = {
             "# Test Überschrift Nummer 1",
             "# Test Überschrift Nummer 2",
@@ -46,13 +42,7 @@ public class MarkdownExporterTest {
     public void setUp() {
         exporter = new MarkdownExporter(true);
         setUpBrokenLinks();
-        website = getWebsite(WEBSITE_URL, 2);
-        website.addBrokenLink(BROKEN_LINK);
-        CrawledWebsite childWebSite = getWebsite(CHILD_WEBSITE_URL, 1);
-        childWebSite.setBrokenLinks(brokenLinks);
-        website.addLinkedWebsite(childWebSite);
-        websites = new ArrayList<>();
-        websites.add(website);
+        setupWebsite();
     }
 
     private void setUpBrokenLinks() {
@@ -60,6 +50,16 @@ public class MarkdownExporterTest {
         brokenLinks.add(BROKEN_LINK);
         brokenLinks.add("https://www.moreBroken.com");
         brokenLinks.add("https://www.veryBroken.net");
+    }
+
+    private void setupWebsite(){
+        website = getWebsite(WEBSITE_URL, 2);
+        website.addBrokenLink(BROKEN_LINK);
+        CrawledWebsite childWebSite = getWebsite(CHILD_WEBSITE_URL, 1);
+        childWebSite.setBrokenLinks(brokenLinks);
+        website.addLinkedWebsite(childWebSite);
+        websites = new ArrayList<>();
+        websites.add(website);
     }
 
     private CrawledWebsite getWebsite(String URL, int depth) {

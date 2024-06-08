@@ -99,7 +99,7 @@ public class WebCrawler {
     private void translateHeadings(List<Heading> headings, Language target, Language source){
         List<String> headingsToTranslate = Heading.getHeadingsTextsAsList(headings);
         Translator translator = new Translator(target, source);
-        List<String> translatedHeadings = translator.getMultipleTranslations(headingsToTranslate);
+        List<String> translatedHeadings = translator.translateMultipleLines(headingsToTranslate);
         for (int i = 0; i < headings.size(); i++) {
             Heading heading = headings.get(i);
             heading.setText(translatedHeadings.get(i));
