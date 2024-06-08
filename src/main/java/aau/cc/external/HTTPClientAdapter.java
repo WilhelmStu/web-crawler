@@ -29,7 +29,7 @@ public class HTTPClientAdapter {
         try (Response response = httpClient.newCall(nextRequest).execute()) {
             return checkResponseAndGetContent(response);
         } catch (IOException e) {
-            System.err.println("Error during request:" + e.getMessage());
+            System.err.println("Request error: " + e.getMessage());
             return ""; // translation API is not 100% reliable
         }
     }
@@ -68,8 +68,8 @@ public class HTTPClientAdapter {
         this.httpClient = httpClient;
     }
 
-    protected void setNextRequest(Request nextRequest) {
-        this.nextRequest = nextRequest;
+    protected void resetNextRequest() {
+        this.nextRequest = null;
     }
 
     protected Request getNextRequest() {

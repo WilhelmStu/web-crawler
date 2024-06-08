@@ -4,6 +4,7 @@ import aau.cc.model.Language;
 import aau.cc.model.UserInput;
 
 import java.util.ArrayList;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -20,7 +21,7 @@ public class UserInputHandler {
         return userInput;
     }
 
-    public static List<String> askUserForURLs() { //todo handle InputMismatchException
+    public static List<String> askUserForURLs() {
         List<String> urls = new ArrayList<>();
         System.out.println("Enter multiple URLs to be crawled (empty line to proceed):");
         String url;
@@ -37,10 +38,17 @@ public class UserInputHandler {
     public static int askUserForCrawlingDepth() {
         System.out.print("Enter the depth of websites to crawl: ");
         int depth;
-        while (!((depth = scanner.nextInt()) > 1)){
-            System.out.println("Depth must be a positive integer!");
-        } // todo catch exception
-        scanner.nextLine();
+        while (true) {
+            try {
+                depth = scanner.nextInt();
+                if (depth > 0) break;
+                System.out.print("Depth must be a positive integer: ");
+            } catch (InputMismatchException e) {
+                System.err.print("Invalid input, need integer, try again: ");
+            } finally {
+                scanner.nextLine();
+            }
+        }
         return depth;
     }
 

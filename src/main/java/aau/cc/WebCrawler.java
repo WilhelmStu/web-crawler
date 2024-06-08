@@ -102,7 +102,11 @@ public class WebCrawler {
         List<String> translatedHeadings = translator.translateMultipleLines(headingsToTranslate);
         for (int i = 0; i < headings.size(); i++) {
             Heading heading = headings.get(i);
-            heading.setText(translatedHeadings.get(i));
+            if(translatedHeadings.isEmpty()){ // Error in translation
+                heading.setText(heading.getText() + " (Not translated due to API error)");
+            }else {
+                heading.setText(translatedHeadings.get(i));
+            }
         }
     }
 

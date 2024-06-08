@@ -77,7 +77,7 @@ public class HTTPClientAdapterTest {
 
     @Test
     public void testDoApiCallRequestNUll() {
-        adapter.setNextRequest(null);
+        adapter.resetNextRequest();
         String result = adapter.doAPICall();
         assertEquals("", result);
     }

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -71,6 +72,14 @@ public class UserInputHandlerTest {
     public void testAskUserForCrawlingDepthInvalid() {
         when(scanner.nextInt())
                 .thenReturn(-1)
+                .thenReturn(2);
+        assertEquals(2, UserInputHandler.askUserForCrawlingDepth());
+    }
+
+    @Test
+    public void testAskUserForCrawlingDepthError() {
+        when(scanner.nextInt())
+                .thenThrow(InputMismatchException.class)
                 .thenReturn(2);
         assertEquals(2, UserInputHandler.askUserForCrawlingDepth());
     }

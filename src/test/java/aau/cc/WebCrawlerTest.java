@@ -38,6 +38,8 @@ public class WebCrawlerTest {
     @AfterEach
     public void tearDown() {
         htmlParser = null;
+        website = null;
+        webCrawler = null;
     }
 
     private void setUpMultipleWebsites(){
@@ -81,7 +83,6 @@ public class WebCrawlerTest {
         website = webCrawler.crawlWebsite(website, alreadyVisited);
         assertNotNull(website);
     }
-
 
     @Test
     public void testCrawlWebsiteEmptyDomains() {
