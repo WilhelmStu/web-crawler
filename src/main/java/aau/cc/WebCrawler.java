@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class WebCrawler {
-    private static final int FETCH_TIMEOUT = 3000;
+    private static final int FETCH_TIMEOUT = 5000;
     private static final int EXECUTOR_TIMEOUT = 10000;
     private ExecutorService executorService;
     private List<String> domains;
@@ -121,7 +121,7 @@ public class WebCrawler {
         List<String> linksToCrawl = getLinksToCrawlFromDomains(links);
         for (String link : links) {
             CrawledWebsite linkedWebsite = new CrawledWebsite(link, crawledWebsite.getDepth() - 1, crawledWebsite.getSource(), crawledWebsite.getTarget());
-            if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && crawledWebsite.getDepth() > 1) {
+            if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && crawledWebsite.getDepth() >= 1) {
                 Future<CrawledWebsite> future = executorService.submit(() -> crawlWebsite(linkedWebsite, alreadyVisited));
                 futureToLinkMap.put(future, link);
             } else {

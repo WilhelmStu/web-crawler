@@ -29,7 +29,7 @@ public class WebCrawlerTest {
     public void setUp() {
         htmlParser = new HTMLParserAdapter();
         htmlParser.setDocumentFromString(HTML);
-        webCrawler = new WebCrawler(DOMAINS);
+        webCrawler = new WebCrawler(DOMAINS, true);
         website = new WebsiteToCrawl(URL, 2,Language.GERMAN, Language.ENGLISH);
         website.setSource(Language.GERMAN);
         website.setTarget(Language.ENGLISH);
@@ -65,7 +65,7 @@ public class WebCrawlerTest {
     @Test
     public void testSizeOfWebsitesToCrawlEmptyDomains() {
         List<String> list = htmlParser.getLinksFromHTML();
-        webCrawler = new WebCrawler();
+        webCrawler = new WebCrawler(true);
         List<String> result = webCrawler.getLinksToCrawlFromDomains(list);
         assertEquals(2, result.size());
     }
@@ -73,7 +73,7 @@ public class WebCrawlerTest {
     @Test
     public void testStringsOfWebsitesToCrawlEmptyDomains() {
         List<String> list = htmlParser.getLinksFromHTML();
-        webCrawler = new WebCrawler();
+        webCrawler = new WebCrawler(true);
         List<String> result = webCrawler.getLinksToCrawlFromDomains(list);
         assertLinks(result);
     }
@@ -86,7 +86,7 @@ public class WebCrawlerTest {
 
     @Test
     public void testCrawlWebsiteEmptyDomains() {
-        webCrawler = new WebCrawler();
+        webCrawler = new WebCrawler(true);
         website = webCrawler.crawlWebsite(website, alreadyVisited);
         assertNotNull(website);
     }

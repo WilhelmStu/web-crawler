@@ -21,13 +21,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class MarkdownExporterTest {
     private static final String FILE_NAME = "Test.md";
+    private static final Path path = Path.of(FILE_NAME);
     private static final String WEBSITE_URL = "https://www.test.com";
     private static final String CHILD_WEBSITE_URL = "https://www.subtest.com";
     private static final String BROKEN_LINK = "https://www.broken.com";
     private static final Heading HEADING_1 = new Heading("Test Überschrift Nummer 1", 1);
     private static final Heading HEADING_2 = new Heading("Test Überschrift Nummer 2", 1);
     private static final Heading HEADING_3 = new Heading("Test Überschrift Nummer 3", 2);
-    private static final String EXPECTED_FORMATED_BROKEN_LINK = "### <span style=\"color:gray\"> Broken Link to: </span>";
+    private static final String EXPECTED_FORMATED_BROKEN_LINK = "### <span style=\"color:gray\">--> Broken Link to: </span>";
     private static final String[] EXPECTED_RESULT_NOT_TRANSLATED = {
             "# Test Überschrift Nummer 1",
             "# Test Überschrift Nummer 2",
@@ -40,7 +41,7 @@ public class MarkdownExporterTest {
 
     @BeforeEach
     public void setUp() {
-        exporter = new MarkdownExporter(true);
+        exporter = new MarkdownExporter(true,2);
         setUpBrokenLinks();
         setupWebsite();
     }
@@ -98,55 +99,55 @@ public class MarkdownExporterTest {
 
     @Test
     public void testExportHeaderContentTranslated() {
-        exporter = new MarkdownExporter(false);
+        exporter = new MarkdownExporter(false,2);
         List<String> result = exporter.getFormattedHeaderContent(website);
         assertResultHeader(result, false);
     }
 
     @Test
     public void testExportMainContent() {
-        List<String> results = exporter.getFormattedMainContent(website, 0);
-        assertExportedContent(results);
+        List<String> results = exporter.getFormattedMainContent(website);
+        assertExportedContent(results.subList(1,4));
     }
 
     @Test
     public void testExportChildrenContent() {
-        List<String> results = exporter.getFormattedSubWebsiteContent(website, website.getDepth());
+        List<String> results = exporter.getFormattedSubWebsiteContentRecursively(website, website.getDepth());
         assertExportedChildrenContent(results);
     }
 
     @Test
     public void testExportBrokenLinkFromWebsite() {
-        exporter = new MarkdownExporter(false);
-        List<String> results = exporter.getFormattedBrokenLinks(website.getBrokenLinks());
+        exporter = new MarkdownExporter(false,2);
+        List<String> results = exporter.getFormattedBrokenLinks(website.getBrokenLinks(),1);
         assertFormattedBrokenLinks(results);
     }
 
     @Test
     public void testExportBrokenLinks() {
-        exporter = new MarkdownExporter(false);
-        List<String> results = exporter.getFormattedBrokenLinks(brokenLinks);
+        exporter = new MarkdownExporter(false,2);
+        List<String> results = exporter.getFormattedBrokenLinks(brokenLinks,1);
         assertFormattedBrokenLinks(results);
     }
 
     @Test
     public void testExportToFile() {
-        exporter.generateMarkdownFile(FILE_NAME, websites);
+        exporter.writeContentToMarkdownFile(FILE_NAME, websites);
         assertExportedFile();
     }
 
     @Test
     public void testExportToFileNoFileExtension() {
-        exporter.generateMarkdownFile("Test", websites);
+        exporter.writeContentToMarkdownFile("Test", websites);
         assertExportedFile();
     }
 
     @Test
     public void testDeleteMarkdownFileIfExists() {
-        exporter.generateMarkdownFile(FILE_NAME, websites);
-        assertTrue(Files.exists(Path.of(FILE_NAME)));
+        exporter.writeContentToMarkdownFile(FILE_NAME, websites);
+        assertTrue(Files.exists(path));
         exporter.deleteMarkdownFileIfExists(FILE_NAME);
-        assertFalse(Files.exists(Path.of(FILE_NAME)));
+        assertFalse(Files.exists(path));
     }
 
     @Test
@@ -174,12 +175,12 @@ public class MarkdownExporterTest {
     }
 
     private void assertExportedChildrenContent(List<String> results) {
-        assertEquals("<br>\n___", results.get(0));
+        assertEquals("<br>", results.get(0));
         assertEquals("\n### Children of: https://www.test.com", results.get(1));
-        assertEquals("### Link to: https://www.subtest.com", results.get(3));
+        assertEquals("### ---> Link to: https://www.subtest.com", results.get(3));
         List<String> subResults = results.subList(4, 6);
         for (int i = 0; i < subResults.size(); i++) {
-            assertEquals(subResults.get(i), "##" + EXPECTED_RESULT_NOT_TRANSLATED[i]);
+            assertEquals(EXPECTED_RESULT_NOT_TRANSLATED[i], subResults.get(i).replace("---> ", ""));
         }
     }
 

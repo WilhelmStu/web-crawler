@@ -8,7 +8,8 @@ public class TranslationAPI {
     public static final String API_URL_GET_LANGUAGES = "https://microsoft-translator-text.p.rapidapi.com/languages?api-version=3.0&scope=translation";
     protected static final String API_URL_TRANSLATE = "https://microsoft-translator-text.p.rapidapi.com/translate?api-version=3.0&textType=plain&profanityAction=NoAction";
     public static final String API_HOST = "microsoft-translator-text.p.rapidapi.com";
-    private static final String OBFUSCATED_API_KEY = "6829db37d45msha2b2d16c6ae926fw9p1326d0jsn0d545l9c433b15";
+    private static final String OBFUSCATED_API_KEY = "61f9290f6afmsh7a2ed99816a543fw7p19155cjsn0eb5312abd7d34";
+    private static final String OBFUSCATED_API_KEY2 = "6829db37d45msha2b2d16c6ae926fw9p1326d0jsn0d545l9c433b15";
     public static final int API_MAX_BATCH_SIZE = 25;
     private static String API_KEY;
 
