@@ -144,7 +144,7 @@ public class MarkdownFormatterTest {
     }
 
     private void assertFormattedChildrenContent(List<String> results) {
-        assertEquals("<br>\n### Children of: https://www.test.com", results.get(0));
+        assertEquals("<br>\n\n### Children of: https://www.test.com", results.get(0));
         assertEquals("### ---> Link to: https://www.subtest.com", results.get(2));
         List<String> subResults = results.subList(3, 5);
         for (int i = 0; i < subResults.size(); i++) {

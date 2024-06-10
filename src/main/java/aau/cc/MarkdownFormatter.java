@@ -64,7 +64,7 @@ public class MarkdownFormatter {
 
     public List<String> getFormattedSubWebsiteContentRecursively(CrawledWebsite parentWebsite, int printDepth) {
         List<String> formattedContent = new ArrayList<>();
-        formattedContent.add("<br>\n### Children of: " + parentWebsite.getUrl());
+        formattedContent.add("<br>\n\n### Children of: " + parentWebsite.getUrl());
         addContentOfSubWebsites(parentWebsite, formattedContent, printDepth);
         for (CrawledWebsite subWebsite : parentWebsite.getLinkedWebsites()) {
             if (printDepth <= crawlingDepth) {

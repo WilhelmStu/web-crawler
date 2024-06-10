@@ -3,6 +3,7 @@ package aau.cc;
 import aau.cc.external.HTTPClientAdapter;
 import aau.cc.external.JSONParserAdapter;
 import aau.cc.external.TranslationAPI;
+import aau.cc.model.Heading;
 import aau.cc.model.Language;
 
 import java.util.ArrayList;
@@ -11,7 +12,6 @@ import java.util.List;
 public class Translator {
 
     private Language defaultTargetLanguage;
-
     private HTTPClientAdapter httpClientAdapter;
 
     public Translator(Language defaultTargetLanguage) {
@@ -45,6 +45,10 @@ public class Translator {
         return translations;
     }
 
+    public List<String> translateMultipleLines(List<String> toTranslate) {
+        return translateMultipleLines(toTranslate, defaultTargetLanguage);
+    }
+
     private List<String> doBatchRequest(List<String> toTranslate, int index, Language targetLanguage) {
         List<String> batch = toTranslate.subList(index, Math.min(index + TranslationAPI.API_MAX_BATCH_SIZE, toTranslate.size()));
         String body = TranslationAPI.getJsonBodyForTranslation(batch);
@@ -54,8 +58,17 @@ public class Translator {
         return JSONParserAdapter.parseTranslationFromString(result);
     }
 
-    public List<String> translateMultipleLines(List<String> toTranslate) {
-        return translateMultipleLines(toTranslate, defaultTargetLanguage);
+    public static void translateHeadingsInPlace(List<Heading> headings, Translator translator){
+        List<String> headingsToTranslate = Heading.getHeadingsTextsAsList(headings);
+        List<String> translatedHeadings = translator.translateMultipleLines(headingsToTranslate);
+        for (int i = 0; i < headings.size(); i++) {
+            Heading heading = headings.get(i);
+            if(translatedHeadings.isEmpty()){ // Error in translation
+                heading.setText(heading.getText() + " (Not translated due to API error)");
+            }else {
+                heading.setText(translatedHeadings.get(i));
+            }
+        }
     }
 
     public String getAvailableLanguages() {

@@ -24,7 +24,6 @@ public class HTMLParserAdapterTest {
             "</html>";
     private static final String URL = "https://google.at";
     private static final String MALFORMED_URL = "not an url!";
-    private static final int FETCH_TIMEOUT = 3000;
     private HTMLParserAdapter htmlParser; ;
 
 
@@ -92,13 +91,13 @@ public class HTMLParserAdapterTest {
 
     @Test
     public void testParseWebsiteFromURL() {
-        assertTrue(htmlParser.fetchHTMLFromURL(URL, FETCH_TIMEOUT));
+        assertTrue(htmlParser.fetchHTMLFromURL(URL));
         assertTrue(htmlParser.hasDocument());
     }
 
     @Test
     public void testParseWebsiteFromMalformedURL() {
-        assertFalse(htmlParser.fetchHTMLFromURL(MALFORMED_URL, FETCH_TIMEOUT));
+        assertFalse(htmlParser.fetchHTMLFromURL(MALFORMED_URL));
         assertFalse(htmlParser.hasDocument());
     }
 

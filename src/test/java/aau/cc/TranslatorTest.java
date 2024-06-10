@@ -1,6 +1,7 @@
 package aau.cc;
 
 import aau.cc.external.HTTPClientAdapter;
+import aau.cc.model.Heading;
 import aau.cc.model.Language;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -120,6 +121,45 @@ public class TranslatorTest {
         assertEquals(EXPECTED_ERROR, result);
     }
 
+    @Test
+    public void testTranslateHeadings() {
+        when(mockClientAdapter.doAPICall()).thenReturn(RESPONSE4);
+        List<Heading> headings = getHeadingList();
+        Translator.translateHeadingsInPlace(headings, translator);
+        assertHeadings(headings);
+    }
+
+    @Test
+    public void testTranslateHeadingsEmpty() {
+        when(mockClientAdapter.doAPICall()).thenReturn("");
+        List<Heading> headings = getHeadingList();
+        Translator.translateHeadingsInPlace(headings, translator);
+        assertHeadingsError(headings);
+    }
+
+    private void assertHeadings(List<Heading> headings) {
+        for (int i = 0; i < headings.size(); i++) {
+            Heading heading = headings.get(i);
+            assertEquals(1, heading.getDepth());
+            assertEquals(EXPECTED_RESULTS1[i], heading.getText());
+        }
+    }
+
+    private void assertHeadingsError(List<Heading> headings) {
+        for (int i = 0; i < headings.size(); i++) {
+            Heading heading = headings.get(i);
+            assertEquals(1, heading.getDepth());
+            assertEquals(WORDS_TO_TRANSLATE[i] + " (Not translated due to API error)", heading.getText());
+        }
+    }
+
+    private List<Heading> getHeadingList(){
+        List<Heading> headings = new ArrayList<>();
+        for (String s : WORDS_TO_TRANSLATE) {
+            headings.add(new Heading(s, 1));
+        }
+        return headings;
+    }
 
     private void assertResults1(List<String> results) {
         for (int i = 0; i < EXPECTED_RESULTS1.length; i++) {

@@ -11,17 +11,15 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class WebCrawler {
-    private static final int FETCH_TIMEOUT = 5000;
-    private static final int EXECUTOR_TIMEOUT = 10000;
-    private ExecutorService executorService;
     private List<String> domains;
     private List<CrawledWebsite> crawledWebsites;
     private boolean skipTranslations;
+    private final ConcurrencyManager concurrencyManager;
 
     public WebCrawler(List<String> domains, boolean skipTranslations) {
         this.domains = domains;
         this.skipTranslations = skipTranslations;
-        executorService = Executors.newCachedThreadPool(); // cachedThreadPool has the best performance
+        this.concurrencyManager = new ConcurrencyManager();
         crawledWebsites = new ArrayList<>();
     }
 
@@ -37,14 +35,13 @@ public class WebCrawler {
         this(Collections.emptyList(),false);
     }
 
-
     public List<CrawledWebsite> crawlWebsites(List<WebsiteToCrawl> websites) {
-        resetExecutorServiceIfDown();
+        concurrencyManager.resetIfDown();
 
         List<Future<CrawledWebsite>> futures = createFutureForEachWebsite(websites);
         collectCrawledWebsitesFromFutures(futures);
 
-        shutdownExecutorService();
+        concurrencyManager.shutdown();
         return crawledWebsites;
     }
 
@@ -52,7 +49,7 @@ public class WebCrawler {
         List<Future<CrawledWebsite>> futures = new ArrayList<>();
         for (WebsiteToCrawl website : websites) {
             Set<String> alreadyVisited = Collections.synchronizedSet(new HashSet<>());
-            futures.add(executorService.submit(() -> crawlWebsite(website, alreadyVisited)));
+            futures.add(concurrencyManager.submitTask(() -> crawlWebsite(website, alreadyVisited)));
         }
         return futures;
     }
@@ -71,7 +68,7 @@ public class WebCrawler {
     }
 
     public CrawledWebsite crawlWebsite(WebsiteToCrawl website, Set<String> alreadyVisited) {
-        resetExecutorServiceIfDown();
+        concurrencyManager.resetIfDown();
         alreadyVisited.add(website.getUrl());
 
         HTMLParserAdapter htmlParser = fetchAndGetParser(website);
@@ -80,7 +77,7 @@ public class WebCrawler {
         }
 
         CrawledWebsite crawledWebsite = CrawledWebsite.from(website);
-        crawledWebsite.setHeadings(getTranslatedHeadings(htmlParser, crawledWebsite.getTarget(), crawledWebsite.getSource()));
+        crawledWebsite.setHeadings(getTranslatedHeadings(htmlParser, crawledWebsite.getTarget()));
         List<String> links = htmlParser.getLinksFromHTML();
 
         Map<Future<CrawledWebsite>, String> futureToLinkMap = createWebsiteFutures(crawledWebsite, alreadyVisited, links);
@@ -88,31 +85,17 @@ public class WebCrawler {
         return crawledWebsite;
     }
 
-    private List<Heading> getTranslatedHeadings(HTMLParserAdapter htmlParser, Language target, Language source){
+    private List<Heading> getTranslatedHeadings(HTMLParserAdapter htmlParser, Language target){
         List<Heading> headings = htmlParser.getHeadingsFromHTML();
         if (!skipTranslations) {
-            translateHeadings(headings, target, source);
+            Translator.translateHeadingsInPlace(headings, new Translator(target));
         }
         return headings;
     }
 
-    private void translateHeadings(List<Heading> headings, Language target, Language source){
-        List<String> headingsToTranslate = Heading.getHeadingsTextsAsList(headings);
-        Translator translator = new Translator(target);
-        List<String> translatedHeadings = translator.translateMultipleLines(headingsToTranslate);
-        for (int i = 0; i < headings.size(); i++) {
-            Heading heading = headings.get(i);
-            if(translatedHeadings.isEmpty()){ // Error in translation
-                heading.setText(heading.getText() + " (Not translated due to API error)");
-            }else {
-                heading.setText(translatedHeadings.get(i));
-            }
-        }
-    }
-
     private HTMLParserAdapter fetchAndGetParser(WebsiteToCrawl website) {
         HTMLParserAdapter htmlParser = new HTMLParserAdapter();
-        htmlParser.fetchHTMLFromURL(website.getUrl(), FETCH_TIMEOUT);
+        htmlParser.fetchHTMLFromURL(website.getUrl());
         return htmlParser;
     }
 
@@ -122,7 +105,7 @@ public class WebCrawler {
         for (String link : links) {
             CrawledWebsite linkedWebsite = new CrawledWebsite(link, crawledWebsite.getDepth() - 1, crawledWebsite.getSource(), crawledWebsite.getTarget());
             if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && crawledWebsite.getDepth() >= 1) {
-                Future<CrawledWebsite> future = executorService.submit(() -> crawlWebsite(linkedWebsite, alreadyVisited));
+                Future<CrawledWebsite> future = concurrencyManager.submitTask(() -> crawlWebsite(linkedWebsite, alreadyVisited));
                 futureToLinkMap.put(future, link);
             } else {
                 crawledWebsite.addLinkedWebsite(linkedWebsite);
@@ -176,34 +159,9 @@ public class WebCrawler {
     }
 
     public void reset() {
-        shutdownExecutorService();
-        resetExecutorServiceIfDown();
+        concurrencyManager.shutdown();
+        concurrencyManager.resetIfDown();
         crawledWebsites = new ArrayList<>();
-    }
-
-    private void shutdownExecutorService() {
-        try {
-            ensureShutdown();
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            System.err.println("ExecutorService did not terminate: " + e.getMessage());
-        }
-    }
-
-    private void ensureShutdown() throws InterruptedException {
-        executorService.shutdown();
-        if (!executorService.awaitTermination(EXECUTOR_TIMEOUT, TimeUnit.MILLISECONDS)) {
-            executorService.shutdownNow();
-            if (!executorService.awaitTermination(EXECUTOR_TIMEOUT, TimeUnit.MILLISECONDS)) {
-                System.err.println("ExecutorService did not terminate");
-            }
-        }
-    }
-
-    private void resetExecutorServiceIfDown() {
-        if (executorService.isShutdown() || executorService.isTerminated()) {
-            executorService = Executors.newCachedThreadPool();
-        }
     }
 
     public List<String> getDomains() {

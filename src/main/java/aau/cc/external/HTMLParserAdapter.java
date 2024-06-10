@@ -11,6 +11,7 @@ import java.net.URL;
 import java.util.*;
 
 public class HTMLParserAdapter {
+    private static final int FETCH_TIMEOUT = 5000;
     private Document document;
     private boolean hasDocument;
 
@@ -18,9 +19,9 @@ public class HTMLParserAdapter {
         hasDocument = false;
     }
 
-    public boolean fetchHTMLFromURL(String url, int timeout) {
+    public boolean fetchHTMLFromURL(String url) {
         try {
-            this.document = Jsoup.parse(new URL(url), timeout);
+            this.document = Jsoup.parse(new URL(url), FETCH_TIMEOUT);
             this.hasDocument = true;
         } catch (IOException e) {
             this.hasDocument = false;
