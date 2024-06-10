@@ -53,7 +53,8 @@ public class Main {
 
     protected static void writeResultsToFile(List<CrawledWebsite> crawledWebsites, String filename) {
         System.out.println("\nWriting results to " + filename);
-        MarkdownExporter exporter = new MarkdownExporter(userInput.isSkipTranslation(), userInput.getDepth());
+        MarkdownFormatter formatter = new MarkdownFormatter(userInput.isSkipTranslation(), userInput.getDepth());
+        MarkdownExporter exporter = new MarkdownExporter(formatter);
         exporter.deleteMarkdownFileIfExists(filename);
         exporter.writeContentToMarkdownFile(filename, crawledWebsites);
     }
