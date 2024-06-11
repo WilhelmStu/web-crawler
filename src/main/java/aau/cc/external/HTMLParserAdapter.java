@@ -1,6 +1,8 @@
 package aau.cc.external;
 
+import aau.cc.Translator;
 import aau.cc.model.Heading;
+import aau.cc.model.Language;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -11,6 +13,7 @@ import java.net.URL;
 import java.util.*;
 
 public class HTMLParserAdapter {
+    private static final int FETCH_TIMEOUT = 5000;
     private Document document;
     private boolean hasDocument;
 
@@ -18,9 +21,9 @@ public class HTMLParserAdapter {
         hasDocument = false;
     }
 
-    public boolean fetchHTMLFromURL(String url, int timeout) {
+    public boolean fetchHTMLFromURL(String url) {
         try {
-            this.document = Jsoup.parse(new URL(url), timeout);
+            this.document = Jsoup.parse(new URL(url), FETCH_TIMEOUT);
             this.hasDocument = true;
         } catch (IOException e) {
             this.hasDocument = false;
@@ -39,6 +42,12 @@ public class HTMLParserAdapter {
             headingsSet.add(new Heading(heading.text(), headingDepth));
         }
         return new ArrayList<>(headingsSet);
+    }
+
+    public List<Heading> getTranslatedHeadingsFromHTML(Language target) {
+        List<Heading> headings = getHeadingsFromHTML();
+        Translator.translateHeadingsInPlace(headings, new Translator(target));
+        return headings;
     }
 
     public List<String> getLinksFromHTML() {

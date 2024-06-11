@@ -1,7 +1,6 @@
 package aau.cc.model;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class CrawledWebsite extends WebsiteToCrawl {
@@ -84,10 +83,6 @@ public class CrawledWebsite extends WebsiteToCrawl {
         return linkedWebsites;
     }
 
-    public void setLinkedWebsites(List<CrawledWebsite> linkedWebsites) {
-        this.linkedWebsites = linkedWebsites;
-    }
-
     public List<String> getBrokenLinks() {
         return brokenLinks;
     }
@@ -100,7 +95,4 @@ public class CrawledWebsite extends WebsiteToCrawl {
         return hasBrokenUrl;
     }
 
-    public void setHasBrokenUrl(boolean hasBrokenUrl) {
-        this.hasBrokenUrl = hasBrokenUrl;
-    }
 }

@@ -22,4 +22,13 @@ public enum Language {
     public String getCode() {
         return code;
     }
+
+    public static Language findLanguage(String languageCode) {
+        for (Language language : Language.values()) {
+            if (language.getCode().equals(languageCode)) {
+                return language;
+            }
+        }
+        return null;
+    }
 }

@@ -5,8 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class HeadingTest {
     private static final Heading HEADING_1 = new Heading("Heading 1", 1);
@@ -26,6 +25,13 @@ public class HeadingTest {
     public void testEquality() {
         assertEquals(HEADING_1, HEADING_2);
         assertNotEquals(HEADING_1, HEADING_3);
+    }
+
+    @Test
+    public void testInequality() {
+        // this may light as bad in IDEs, but it's just for this test
+        assertFalse(HEADING_3.equals("wrong"));
+        assertFalse(HEADING_3.equals(null));
     }
 
     @Test

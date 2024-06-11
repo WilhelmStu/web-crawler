@@ -17,15 +17,14 @@ public class HTMLParserAdapterTest {
             "<h1>Heading 1</h1>" +
             "<p>Paragraph</p>" +
             "<h2>Heading 2</h2>" +
-            "<a href=\"https://example.com\">Link 1</a>" +
-            "<a href=\"https://example.org\">Link 2</a>" +
+            "<a href=\"https://example.com.1\">Link 1</a>" +
+            "<a href=\"https://example.org.1\">Link 2</a>" +
             "<h4>Heading 3</h4>" +
             "</body>" +
             "</html>";
     private static final String URL = "https://google.at";
     private static final String MALFORMED_URL = "not an url!";
-    private static final int FETCH_TIMEOUT = 3000;
-    private HTMLParserAdapter htmlParser; ;
+    private HTMLParserAdapter htmlParser;
 
 
 
@@ -92,13 +91,13 @@ public class HTMLParserAdapterTest {
 
     @Test
     public void testParseWebsiteFromURL() {
-        assertTrue(htmlParser.fetchHTMLFromURL(URL, FETCH_TIMEOUT));
+        assertTrue(htmlParser.fetchHTMLFromURL(URL));
         assertTrue(htmlParser.hasDocument());
     }
 
     @Test
     public void testParseWebsiteFromMalformedURL() {
-        assertFalse(htmlParser.fetchHTMLFromURL(MALFORMED_URL, FETCH_TIMEOUT));
+        assertFalse(htmlParser.fetchHTMLFromURL(MALFORMED_URL));
         assertFalse(htmlParser.hasDocument());
     }
 
@@ -115,7 +114,7 @@ public class HTMLParserAdapterTest {
     }
 
     private void assertLinks(List<String> result) {
-        assertEquals("https://example.com", result.get(0));
-        assertEquals("https://example.org", result.get(1));
+        assertEquals("https://example.com.1", result.get(0));
+        assertEquals("https://example.org.1", result.get(1));
     }
 }

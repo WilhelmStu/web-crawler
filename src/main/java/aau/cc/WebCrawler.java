@@ -2,27 +2,26 @@ package aau.cc;
 
 import aau.cc.external.HTMLParserAdapter;
 import aau.cc.model.CrawledWebsite;
-import aau.cc.model.Heading;
-import aau.cc.model.Language;
 import aau.cc.model.WebsiteToCrawl;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.*;
 
 public class WebCrawler {
-    private static final int FETCH_TIMEOUT = 3000;
-    private static final int EXECUTOR_TIMEOUT = 10000;
-    private ExecutorService executorService;
+    private static final int FUTURE_GET_TIMEOUT = 30;
     private List<String> domains;
-    private List<CrawledWebsite> crawledWebsites;
     private boolean skipTranslations;
+    private Map<Future<CrawledWebsite>, String> futures;
+    private List<CrawledWebsite> crawledWebsites;
+    private final ConcurrencyManager concurrencyManager;
+
 
     public WebCrawler(List<String> domains, boolean skipTranslations) {
         this.domains = domains;
         this.skipTranslations = skipTranslations;
-        executorService = Executors.newCachedThreadPool(); // cachedThreadPool has the best performance
+        futures = new HashMap<>();
         crawledWebsites = new ArrayList<>();
+        this.concurrencyManager = new ConcurrencyManager();
     }
 
     public WebCrawler(List<String> domains) {
@@ -30,95 +29,76 @@ public class WebCrawler {
     }
 
     public WebCrawler(boolean skipTranslations) {
-        this(Collections.emptyList(),skipTranslations);
+        this(Collections.emptyList(), skipTranslations);
     }
 
     public WebCrawler() {
-        this(Collections.emptyList(),false);
+        this(Collections.emptyList(), false);
     }
 
-
     public List<CrawledWebsite> crawlWebsites(List<WebsiteToCrawl> websites) {
-        resetExecutorServiceIfDown();
+        concurrencyManager.resetIfDown();
+        submitMainCrawlTasks(websites);
+        collectCrawledWebsitesFromFutures();
 
-        List<Future<CrawledWebsite>> futures = createFutureForEachWebsite(websites);
-        collectCrawledWebsitesFromFutures(futures);
-
-        shutdownExecutorService();
+        // shutdown is needed due to cached (60s) Thread pool
+        concurrencyManager.shutdown();
         return crawledWebsites;
     }
 
-    private List<Future<CrawledWebsite>> createFutureForEachWebsite(List<WebsiteToCrawl> websites) {
-        List<Future<CrawledWebsite>> futures = new ArrayList<>();
+    private void submitMainCrawlTasks(List<WebsiteToCrawl> websites) {
         for (WebsiteToCrawl website : websites) {
             Set<String> alreadyVisited = Collections.synchronizedSet(new HashSet<>());
-            futures.add(executorService.submit(() -> crawlWebsite(website, alreadyVisited)));
+            futures.put(concurrencyManager.submitTask(() -> fetchAndCrawlWebsite(website, alreadyVisited, new HTMLParserAdapter())), website.getUrl());
         }
-        return futures;
     }
 
-    private void collectCrawledWebsitesFromFutures(List<Future<CrawledWebsite>> futures) {
-        for (Future<CrawledWebsite> future : futures) {
+    protected void collectCrawledWebsitesFromFutures() {
+        for (Map.Entry<Future<CrawledWebsite>, String> entry : futures.entrySet()) {
+            Future<CrawledWebsite> future = entry.getKey();
+            String link = entry.getValue();
             try {
-                CrawledWebsite crawledWebsite = future.get();
+                CrawledWebsite crawledWebsite = future.get(FUTURE_GET_TIMEOUT, TimeUnit.SECONDS);
                 if (crawledWebsite != null) {
                     crawledWebsites.add(crawledWebsite);
                 }
-            } catch (InterruptedException | ExecutionException e) {
-                System.err.println("Future collection of CrawledWebsites failed: " + e.getMessage());
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                String urlAndError = link + " (Error during future collection: " + e.getMessage() + ")";
+                crawledWebsites.add(new CrawledWebsite(urlAndError, true));
             }
         }
     }
 
-    public CrawledWebsite crawlWebsite(WebsiteToCrawl website, Set<String> alreadyVisited) {
-        resetExecutorServiceIfDown();
+    public CrawledWebsite fetchAndCrawlWebsite(WebsiteToCrawl website, Set<String> alreadyVisited, HTMLParserAdapter htmlParser) {
         alreadyVisited.add(website.getUrl());
-
-        HTMLParserAdapter htmlParser = fetchAndGetParser(website);
+        htmlParser.fetchHTMLFromURL(website.getUrl());
         if (!htmlParser.hasDocument()) {
-            return new CrawledWebsite(website.getUrl(), true);
+            String urlAndError = website.getUrl() + " (Error while fetching Website)";
+            return new CrawledWebsite(urlAndError, true);
         }
+        return crawlWebsite(website, alreadyVisited, htmlParser);
+    }
 
+    private CrawledWebsite crawlWebsite(WebsiteToCrawl website, Set<String> alreadyVisited, HTMLParserAdapter htmlParser) {
         CrawledWebsite crawledWebsite = CrawledWebsite.from(website);
-        crawledWebsite.setHeadings(getTranslatedHeadings(htmlParser, crawledWebsite.getTarget(), crawledWebsite.getSource()));
+        crawledWebsite.setHeadings(skipTranslations ?
+                htmlParser.getHeadingsFromHTML() :
+                htmlParser.getTranslatedHeadingsFromHTML(website.getTarget())
+        );
         List<String> links = htmlParser.getLinksFromHTML();
-
-        Map<Future<CrawledWebsite>, String> futureToLinkMap = createWebsiteFutures(crawledWebsite, alreadyVisited, links);
-        collectLinkedWebsitesFromFutures(futureToLinkMap, crawledWebsite);
+        Map<Future<CrawledWebsite>, String> futureToLinkMap = submitCrawlTasksForLinkedWebsites(crawledWebsite, alreadyVisited, links);
+        collectAndLinkWebsitesFromFutures(futureToLinkMap, crawledWebsite);
         return crawledWebsite;
     }
 
-    private List<Heading> getTranslatedHeadings(HTMLParserAdapter htmlParser, Language target, Language source){
-        List<Heading> headings = htmlParser.getHeadingsFromHTML();
-        if (!skipTranslations) {
-            translateHeadings(headings, target, source);
-        }
-        return headings;
-    }
-
-    private void translateHeadings(List<Heading> headings, Language target, Language source){
-        List<String> headingsToTranslate = Heading.getHeadingsTextsAsList(headings);
-        Translator translator = new Translator(target, source);
-        List<String> translatedHeadings = translator.getMultipleTranslations(headingsToTranslate);
-        for (int i = 0; i < headings.size(); i++) {
-            Heading heading = headings.get(i);
-            heading.setText(translatedHeadings.get(i));
-        }
-    }
-
-    private HTMLParserAdapter fetchAndGetParser(WebsiteToCrawl website) {
-        HTMLParserAdapter htmlParser = new HTMLParserAdapter();
-        htmlParser.fetchHTMLFromURL(website.getUrl(), FETCH_TIMEOUT);
-        return htmlParser;
-    }
-
-    private @NotNull Map<Future<CrawledWebsite>, String> createWebsiteFutures(CrawledWebsite crawledWebsite, Set<String> alreadyVisited, List<String> links) {
-        Map<Future<CrawledWebsite>, String> futureToLinkMap = new ConcurrentHashMap<>();
-        List<String> linksToCrawl = getLinksToCrawlFromDomains(links);
+    private Map<Future<CrawledWebsite>, String> submitCrawlTasksForLinkedWebsites(CrawledWebsite crawledWebsite, Set<String> alreadyVisited, List<String> links) {
+        concurrencyManager.resetIfDown();
+        Map<Future<CrawledWebsite>, String> futureToLinkMap = new HashMap<>();
+        List<String> linksToCrawl = filterLinksByDomains(links);
         for (String link : links) {
             CrawledWebsite linkedWebsite = new CrawledWebsite(link, crawledWebsite.getDepth() - 1, crawledWebsite.getSource(), crawledWebsite.getTarget());
-            if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && crawledWebsite.getDepth() > 1) {
-                Future<CrawledWebsite> future = executorService.submit(() -> crawlWebsite(linkedWebsite, alreadyVisited));
+            if (!alreadyVisited.contains(link) && linksToCrawl.contains(link) && crawledWebsite.getDepth() >= 1) {
+                Future<CrawledWebsite> future = concurrencyManager.submitTask(() -> fetchAndCrawlWebsite(linkedWebsite, alreadyVisited, new HTMLParserAdapter()));
                 futureToLinkMap.put(future, link);
             } else {
                 crawledWebsite.addLinkedWebsite(linkedWebsite);
@@ -127,28 +107,25 @@ public class WebCrawler {
         return futureToLinkMap;
     }
 
-    private static void collectLinkedWebsitesFromFutures(Map<Future<CrawledWebsite>, String> futureToLinkMap, CrawledWebsite crawledWebsite) {
+    protected void collectAndLinkWebsitesFromFutures(Map<Future<CrawledWebsite>, String> futureToLinkMap, CrawledWebsite crawledWebsite) {
         for (Map.Entry<Future<CrawledWebsite>, String> entry : futureToLinkMap.entrySet()) {
+            Future<CrawledWebsite> future = entry.getKey();
+            String link = entry.getValue();
             try {
-                processFutureMapEntry(crawledWebsite, entry);
-            } catch (Exception e) {
-                System.err.println("Future collection of CrawledWebsites failed: " + e.getMessage());
+                CrawledWebsite linkedWebsite = future.get(FUTURE_GET_TIMEOUT, TimeUnit.SECONDS);
+                if (linkedWebsite != null && !linkedWebsite.hasBrokenUrl()) {
+                    crawledWebsite.addLinkedWebsite(linkedWebsite);
+                } else {
+                    crawledWebsite.addBrokenLink(link + " (Error while fetching Website)");
+                }
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                String urlAndError = link + " (Error during future collection: " + e.getMessage() + ")";
+                crawledWebsite.addBrokenLink(urlAndError);
             }
         }
     }
 
-    private static void processFutureMapEntry(CrawledWebsite crawledWebsite, Map.Entry<Future<CrawledWebsite>, String> entry) throws Exception {
-        Future<CrawledWebsite> future = entry.getKey();
-        String link = entry.getValue();
-        CrawledWebsite linkedWebsite = future.get();
-        if (linkedWebsite != null && !linkedWebsite.hasBrokenUrl()) {
-            crawledWebsite.addLinkedWebsite(linkedWebsite);
-        } else {
-            crawledWebsite.addBrokenLink(link);
-        }
-    }
-
-    public List<String> getLinksToCrawlFromDomains(List<String> links) {
+    public List<String> filterLinksByDomains(List<String> links) {
         Set<String> linksToCrawl;
         if (domains == null || domains.isEmpty()) {
             linksToCrawl = new LinkedHashSet<>(links);
@@ -158,7 +135,7 @@ public class WebCrawler {
         return new ArrayList<>(linksToCrawl);
     }
 
-    private Set<String> getIntersectionOfLinks(List<String> links) {
+    protected Set<String> getIntersectionOfLinks(List<String> links) {
         Set<String> intersection = new LinkedHashSet<>();
         for (String link : links) {
             for (String domain : domains) {
@@ -172,53 +149,37 @@ public class WebCrawler {
     }
 
     public void reset() {
-        shutdownExecutorService();
-        resetExecutorServiceIfDown();
+        concurrencyManager.shutdown();
+        concurrencyManager.resetIfDown();
         crawledWebsites = new ArrayList<>();
-    }
-
-    private void shutdownExecutorService() {
-        try {
-            ensureShutdown();
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            System.err.println("ExecutorService did not terminate: " + e.getMessage());
-        }
-    }
-
-    private void ensureShutdown() throws InterruptedException {
-        executorService.shutdown();
-        if (!executorService.awaitTermination(EXECUTOR_TIMEOUT, TimeUnit.MILLISECONDS)) {
-            executorService.shutdownNow();
-            if (!executorService.awaitTermination(EXECUTOR_TIMEOUT, TimeUnit.MILLISECONDS)) {
-                System.err.println("ExecutorService did not terminate");
-            }
-        }
-    }
-
-    private void resetExecutorServiceIfDown() {
-        if (executorService.isShutdown() || executorService.isTerminated()) {
-            executorService = Executors.newCachedThreadPool();
-        }
-    }
-
-    public List<String> getDomains() {
-        return domains;
-    }
-
-    public void setDomains(List<String> domains) {
-        this.domains = domains;
+        futures = new HashMap<>();
     }
 
     public List<CrawledWebsite> getCrawledWebsites() {
         return crawledWebsites;
     }
 
-    public boolean isSkipTranslations() {
-        return skipTranslations;
+    protected Map<Future<CrawledWebsite>, String> getFutures() {
+        return futures;
+    }
+
+    protected void setFutures(Map<Future<CrawledWebsite>, String> futures) {
+        this.futures = futures;
+    }
+
+    public void setDomains(List<String> domains) {
+        this.domains = domains;
+    }
+
+    public List<String> getDomains() {
+        return domains;
     }
 
     public void setSkipTranslations(boolean skipTranslations) {
         this.skipTranslations = skipTranslations;
+    }
+
+    public boolean isSkipTranslations() {
+        return skipTranslations;
     }
 }
