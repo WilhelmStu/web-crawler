@@ -112,11 +112,11 @@ public class WebCrawler {
             Future<CrawledWebsite> future = entry.getKey();
             String link = entry.getValue();
             try {
-                CrawledWebsite linkedWebsite = future.get(FUTURE_GET_TIMEOUT, TimeUnit.SECONDS);;
+                CrawledWebsite linkedWebsite = future.get(FUTURE_GET_TIMEOUT, TimeUnit.SECONDS);
                 if (linkedWebsite != null && !linkedWebsite.hasBrokenUrl()) {
                     crawledWebsite.addLinkedWebsite(linkedWebsite);
                 } else {
-                    crawledWebsite.addBrokenLink(link);
+                    crawledWebsite.addBrokenLink(link + " (Error while fetching Website)");
                 }
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 String urlAndError = link + " (Error during future collection: " + e.getMessage() + ")";

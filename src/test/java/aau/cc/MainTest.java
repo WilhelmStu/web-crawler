@@ -63,7 +63,7 @@ public class MainTest {
     @Test
     public void testPrepareWebsitesToCrawl() {
         List<WebsiteToCrawl> result = Main.prepareWebsitesToCrawl();
-        assertWebsitesToCrawl(result, false);
+        assertWebsitesToCrawl(result);
     }
 
     @Test
@@ -73,7 +73,7 @@ public class MainTest {
         when(userInput.getTargetLanguage())
                 .thenReturn(null);
         List<WebsiteToCrawl> result = Main.prepareWebsitesToCrawl();
-        assertWebsitesToCrawl(result, true);
+        assertWebsitesToCrawl(result);
     }
 
     @Test
@@ -98,7 +98,7 @@ public class MainTest {
         }
     }
 
-    private void assertWebsitesToCrawl(List<WebsiteToCrawl> websitesToCrawl, boolean skipTranslation){
+    private void assertWebsitesToCrawl(List<WebsiteToCrawl> websitesToCrawl){
         for(WebsiteToCrawl websiteToCrawl: websitesToCrawl){
             assertEquals(DEPTH, websiteToCrawl.getDepth());
             assertEquals(WEBSITE_URL, websiteToCrawl.getUrl());

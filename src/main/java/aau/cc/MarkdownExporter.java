@@ -10,7 +10,7 @@ import java.util.List;
 
 public class MarkdownExporter {
 
-    private MarkdownFormatter formatter;
+    private final MarkdownFormatter formatter;
 
     public MarkdownExporter(MarkdownFormatter formatter) {
         this.formatter = formatter;

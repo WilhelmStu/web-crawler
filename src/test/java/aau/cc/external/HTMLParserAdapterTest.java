@@ -24,7 +24,7 @@ public class HTMLParserAdapterTest {
             "</html>";
     private static final String URL = "https://google.at";
     private static final String MALFORMED_URL = "not an url!";
-    private HTMLParserAdapter htmlParser; ;
+    private HTMLParserAdapter htmlParser;
 
 
 
