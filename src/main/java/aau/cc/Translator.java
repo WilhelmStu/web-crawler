@@ -58,15 +58,15 @@ public class Translator {
         return JSONParserAdapter.parseTranslationFromString(result);
     }
 
-    public static void translateHeadingsInPlace(List<Heading> headings, Translator translator){
+    public static void translateHeadingsInPlace(List<Heading> headings, Translator translator) {
         List<String> headingsToTranslate = Heading.getHeadingsTextsAsList(headings);
         List<String> translatedHeadings = translator.translateMultipleLines(headingsToTranslate);
         for (int i = 0; i < headings.size(); i++) {
             Heading heading = headings.get(i);
-            if(translatedHeadings.isEmpty()){ // Error in translation
-                heading.setText(heading.getText() + " (Not translated due to API error)");
-            }else {
+            if (i < translatedHeadings.size()) {
                 heading.setText(translatedHeadings.get(i));
+            } else { // Error in translations
+                heading.setText(heading.getText() + " (Not translated due to API error)");
             }
         }
     }

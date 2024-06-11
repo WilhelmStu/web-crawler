@@ -47,21 +47,21 @@ public class ConcurrencyManagerTest {
     public void testProperShutdown() {
         ExecutorService service = concurrencyManager.getExecutorService();
         assertFalse(service.isShutdown());
-        concurrencyManager.shutdown();
+        assertTrue(concurrencyManager.shutdown());
         assertTrue(service.isShutdown());
     }
 
     @Test
     public void testImproperShutdown() throws InterruptedException {
         setUpMockExecutor();
-        concurrencyManager.shutdown();
+        assertFalse(concurrencyManager.shutdown());
     }
 
     @Test
     public void testImproperShutdown2() throws InterruptedException {
         setUpMockExecutor();
         when(mockExecutor.awaitTermination(anyLong(), any())).thenReturn(false).thenReturn(true);
-        concurrencyManager.shutdown();
+        assertFalse(concurrencyManager.shutdown());
     }
 
     @Test

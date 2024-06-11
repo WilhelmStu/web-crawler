@@ -1,6 +1,8 @@
 package aau.cc.external;
 
+import aau.cc.Translator;
 import aau.cc.model.Heading;
+import aau.cc.model.Language;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -40,6 +42,12 @@ public class HTMLParserAdapter {
             headingsSet.add(new Heading(heading.text(), headingDepth));
         }
         return new ArrayList<>(headingsSet);
+    }
+
+    public List<Heading> getTranslatedHeadingsFromHTML(Language target) {
+        List<Heading> headings = getHeadingsFromHTML();
+        Translator.translateHeadingsInPlace(headings, new Translator(target));
+        return headings;
     }
 
     public List<String> getLinksFromHTML() {

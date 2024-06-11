@@ -61,7 +61,4 @@ public class MarkdownExporter {
         }
     }
 
-    public void setFormatter(MarkdownFormatter formatter) {
-        this.formatter = formatter;
-    }
 }

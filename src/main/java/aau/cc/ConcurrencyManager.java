@@ -16,23 +16,26 @@ public class ConcurrencyManager {
         return executorService.submit(task);
     }
 
-    public void shutdown() {
+    public boolean shutdown() {
+        executorService.shutdown();
         try {
-            ensureShutdown();
+            return ensureShutdown();
         } catch (InterruptedException e) {
             executorService.shutdownNow();
-            System.err.println("ExecutorService did not terminate: " + e.getMessage());
+            System.err.println("ExecutorService did not properly terminate: " + e.getMessage());
+            return false;
         }
     }
 
-    private void ensureShutdown() throws InterruptedException {
-        executorService.shutdown();
+    private boolean ensureShutdown() throws InterruptedException {
         if (!executorService.awaitTermination(EXECUTOR_TIMEOUT, TimeUnit.MILLISECONDS)) {
             executorService.shutdownNow();
             if (!executorService.awaitTermination(EXECUTOR_TIMEOUT, TimeUnit.MILLISECONDS)) {
                 System.err.println("ExecutorService did not terminate");
             }
+            return false;
         }
+        return true;
     }
 
     public void resetIfDown() {

@@ -17,8 +17,8 @@ public class HTMLParserAdapterTest {
             "<h1>Heading 1</h1>" +
             "<p>Paragraph</p>" +
             "<h2>Heading 2</h2>" +
-            "<a href=\"https://example.com\">Link 1</a>" +
-            "<a href=\"https://example.org\">Link 2</a>" +
+            "<a href=\"https://example.com.1\">Link 1</a>" +
+            "<a href=\"https://example.org.1\">Link 2</a>" +
             "<h4>Heading 3</h4>" +
             "</body>" +
             "</html>";
@@ -114,7 +114,7 @@ public class HTMLParserAdapterTest {
     }
 
     private void assertLinks(List<String> result) {
-        assertEquals("https://example.com", result.get(0));
-        assertEquals("https://example.org", result.get(1));
+        assertEquals("https://example.com.1", result.get(0));
+        assertEquals("https://example.org.1", result.get(1));
     }
 }

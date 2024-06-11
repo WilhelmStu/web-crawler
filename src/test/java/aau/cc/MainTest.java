@@ -94,7 +94,7 @@ public class MainTest {
     private void assertCrawledWebsites(List<CrawledWebsite> crawledWebsites) {
         for (CrawledWebsite crawledWebsite : crawledWebsites) {
             assertTrue(crawledWebsite.hasBrokenUrl());
-            assertEquals(WEBSITE_URL, crawledWebsite.getUrl());
+            assertEquals(WEBSITE_URL + " (Error while fetching Website)", crawledWebsite.getUrl());
         }
     }
 
